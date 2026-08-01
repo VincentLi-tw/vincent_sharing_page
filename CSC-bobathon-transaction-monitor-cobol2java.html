@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>COBOL → Java 遷移挑戰 — 中鋼 CSC Bobathon</title>
+<meta name="description" content="中鋼 CSC Bobathon 專案說明：用 IBM Bob 把信用卡交易監控系統的 COBOL 邏輯遷移成 Java" />
+
+<style>
+  /* ---------------------------------------------------------------
+     TOKENS — IBM Carbon Design System palette (g10 / g100 themes).
+     Single accent: IBM Blue. Red reserved only for alert/fraud
+     semantics, never decorative.
+  ----------------------------------------------------------------*/
+  :root {
+    --bg: #ffffff;
+    --surface: #f4f4f4;
+    --surface-2: #ffffff;
+    --fg: #161616;
+    --fg-muted: #525252;
+    --fg-faint: #6f6f6f;
+    --border: #e0e0e0;
+    --border-soft: #e0e0e0;
+    --accent: #0f62fe;
+    --accent-strong: #0043ce;
+    --accent-contrast: #ffffff;
+    --alert: #da1e28;
+    --alert-bg: rgba(218, 30, 40, 0.08);
+    --shadow: 0 1px 2px rgba(22, 22, 22, 0.06), 0 8px 24px -12px rgba(22, 22, 22, 0.16);
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --font-serif: -apple-system, "IBM Plex Sans", "Helvetica Neue", "PingFang TC", "Microsoft JhengHei", Arial, sans-serif;
+    --radius: 3px;
+  }
+
+  /* Deliberate single (white/light) theme — page always renders on a
+     white background regardless of OS dark-mode preference. The
+     hero terminal / code blocks keep their own fixed dark chrome,
+     styled independently of these tokens (a console prop, not a page
+     theme). The data-theme="dark" override below is kept identical
+     to light so a viewer's theme toggle can't flip the page dark. */
+  :root[data-theme="dark"],
+  :root[data-theme="light"] {
+    --bg: #ffffff;
+    --surface: #f4f4f4;
+    --surface-2: #ffffff;
+    --fg: #161616;
+    --fg-muted: #525252;
+    --fg-faint: #6f6f6f;
+    --border: #e0e0e0;
+    --border-soft: #e0e0e0;
+    --accent: #0f62fe;
+    --accent-strong: #0043ce;
+    --accent-contrast: #ffffff;
+    --alert: #da1e28;
+    --alert-bg: rgba(218, 30, 40, 0.08);
+    --shadow: 0 1px 2px rgba(22, 22, 22, 0.06), 0 8px 24px -12px rgba(22, 22, 22, 0.16);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-serif);
+    font-size: 17px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  ::selection { background: var(--accent); color: var(--accent-contrast); }
+
+  a { color: var(--accent-strong); }
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    font-weight: 700;
+    text-wrap: balance;
+    margin: 0;
+    color: var(--fg);
+  }
+
+  code, .mono { font-family: var(--font-mono); }
+
+  .wrap {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  /* ---------------- NAV ---------------- */
+  .topnav {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .topnav-inner {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 0.7rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .brand {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    white-space: nowrap;
+  }
+  .brand .dot {
+    width: 0.55em; height: 0.55em; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px rgba(15, 98, 254, 0.18);
+    flex: none;
+  }
+  .navlinks {
+    display: flex;
+    gap: 1.1rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .navlinks::-webkit-scrollbar { display: none; }
+  .navlinks a {
+    color: var(--fg-muted);
+    text-decoration: none;
+    white-space: nowrap;
+    padding: 0.2rem 0;
+    border-bottom: 2px solid transparent;
+  }
+  .navlinks a:hover { color: var(--fg); border-color: var(--border); }
+
+  /* ---------------- HERO / TERMINAL ---------------- */
+  .hero {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .term {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 3.2rem 1.5rem 2.6rem;
+  }
+  .term-chrome {
+    background: #161616;
+    border: 1px solid rgba(244, 244, 244, 0.14);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .term-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.9rem;
+    background: rgba(244, 244, 244, 0.06);
+    border-bottom: 1px solid rgba(244, 244, 244, 0.1);
+    overflow: hidden;
+  }
+  .term-bar .dots { display: flex; gap: 0.35rem; flex: none; }
+  .term-bar .dots span {
+    width: 0.6rem; height: 0.6rem; border-radius: 50%;
+    background: rgba(244, 244, 244, 0.25);
+    display: block;
+  }
+  .term-bar .label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.03em;
+    color: rgba(244, 244, 244, 0.55);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .term-body {
+    padding: 1.6rem 1.6rem 2rem;
+    font-family: var(--font-mono);
+    color: #f4f4f4;
+  }
+  .term-line { color: #78a9ff; font-size: 0.82rem; line-height: 1.9; }
+  .term-line .prompt { color: #4589ff; margin-right: 0.5em; }
+  .term-out {
+    color: rgba(244, 244, 244, 0.55);
+    font-size: 0.78rem;
+    line-height: 1.6;
+    margin: 0.1rem 0 1rem;
+  }
+
+  .hero-title {
+    margin-top: 1.5rem;
+    font-size: clamp(1.7rem, 4.6vw, 2.7rem);
+    line-height: 1.28;
+    color: #ffffff;
+  }
+  .hero-title .from { color: rgba(244, 244, 244, 0.45); }
+  .hero-title .arrow { color: var(--accent-strong); margin: 0 0.15em; }
+  .hero-sub {
+    font-family: var(--font-serif);
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 400;
+    font-size: 1.02rem;
+    line-height: 1.8;
+    color: rgba(244, 244, 244, 0.78);
+    max-width: 58ch;
+    margin-top: 1rem;
+  }
+  .hero-sub strong { color: #ffffff; font-weight: 600; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 1.4em; height: 1px;
+    background: var(--accent);
+    flex: none;
+  }
+
+  /* ---------------- SECTIONS ---------------- */
+  section { padding: 3.4rem 0; }
+  section + section { border-top: 1px solid var(--border-soft); }
+  .section-head { margin-bottom: 1.8rem; max-width: 64ch; }
+  .section-head h2 { font-size: 1.05rem; margin-top: 0.7rem; }
+  .lede {
+    font-size: 1.04rem;
+    color: var(--fg-muted);
+    margin-top: 0.7rem;
+  }
+  p { margin: 0 0 1rem; }
+  p:last-child { margin-bottom: 0; }
+  .prose { max-width: 68ch; color: var(--fg-muted); }
+  .prose strong { color: var(--fg); font-weight: 600; }
+
+  /* ---------------- ARCHITECTURE DIAGRAM ---------------- */
+  .flow { display: flex; flex-direction: column; margin: 1.8rem 0; }
+  .flow-node {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.85rem 1.1rem;
+    box-shadow: var(--shadow);
+  }
+  .flow-node .t { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700; }
+  .flow-node .d { font-size: 0.86rem; color: var(--fg-muted); margin-top: 0.25rem; }
+  .flow-hop {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.5rem 0 0.5rem 1.35rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--fg-faint);
+    border-left: 1px dashed var(--border);
+    margin-left: 1.1rem;
+  }
+  .flow-hop .arrow { color: var(--accent); }
+
+  /* ---------------- PHASE LIST (4-stage methodology) ---------------- */
+  .phases { display: flex; flex-direction: column; gap: 1rem; margin-top: 1.8rem; }
+  .phase {
+    display: grid;
+    grid-template-columns: 3rem 1fr;
+    gap: 1.1rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 1.2rem 1.3rem;
+  }
+  .phase .num {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-strong);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .phase .body h3 { font-size: 0.86rem; margin-bottom: 0.5rem; }
+  .phase .body p { font-size: 0.92rem; color: var(--fg-muted); }
+  .phase .deliverable {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    margin-top: 0.6rem;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.03em;
+    color: var(--accent-strong);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border-radius: 3px;
+    padding: 0.2rem 0.5rem;
+  }
+
+  /* ---------------- MISSION TABLE ---------------- */
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+  table { border-collapse: collapse; width: 100%; min-width: 600px; background: var(--surface-2); }
+  thead th {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-align: left;
+    color: var(--fg-faint);
+    background: var(--surface);
+    padding: 0.65rem 0.9rem;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 0.7rem 0.9rem;
+    border-bottom: 1px solid var(--border-soft);
+    font-size: 0.86rem;
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  .file-cell { font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent-strong); white-space: nowrap; }
+  .group-cell { color: var(--fg-faint); font-size: 0.72rem; font-family: var(--font-mono); white-space: nowrap; }
+  .req-cell { color: var(--fg-muted); }
+
+  /* ---------------- STAT ROW ---------------- */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin: 1.8rem 0;
+  }
+  .stat { background: var(--surface-2); padding: 1.1rem 1.1rem 1.2rem; }
+  .stat .n {
+    font-family: var(--font-mono);
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: var(--accent-strong);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat .l { font-size: 0.76rem; color: var(--fg-muted); margin-top: 0.15rem; }
+
+  /* ---------------- QUICKSTART ---------------- */
+  .steps { display: flex; flex-direction: column; gap: 1.1rem; }
+  .step { display: grid; grid-template-columns: 1.9rem 1fr; gap: 0.9rem; }
+  .step .idx {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--fg-faint);
+    padding-top: 0.55rem;
+  }
+  .step .body { min-width: 0; }
+  .step h3 { font-size: 0.82rem; margin-bottom: 0.5rem; }
+  .code-block {
+    position: relative;
+    background: #161616;
+    border: 1px solid rgba(244,244,244,0.14);
+    border-radius: var(--radius);
+    padding: 0.8rem 3.2rem 0.8rem 1rem;
+    overflow-x: auto;
+  }
+  .code-block pre {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: #f4f4f4;
+    white-space: pre;
+    line-height: 1.6;
+  }
+  .code-block .cmt { color: rgba(244,244,244,0.4); }
+  .copy-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.63rem;
+    letter-spacing: 0.03em;
+    color: rgba(244,244,244,0.65);
+    background: rgba(244,244,244,0.08);
+    border: 1px solid rgba(244,244,244,0.16);
+    border-radius: 3px;
+    padding: 0.25rem 0.55rem;
+    cursor: pointer;
+  }
+  .copy-btn:hover { background: rgba(244,244,244,0.16); color: #ffffff; }
+
+  .callout {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    background: var(--surface-2);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 0.9rem 1.1rem;
+    font-size: 0.88rem;
+    color: var(--fg-muted);
+    margin-top: 1.6rem;
+  }
+  .callout.alert { border-left-color: var(--alert); }
+  .callout strong { color: var(--fg); }
+
+  /* ---------------- STACK ---------------- */
+  .stack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 1rem;
+  }
+  .stack-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.1rem;
+  }
+  .stack-card .k { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.05em; color: var(--fg-faint); text-transform: uppercase; }
+  .stack-card .v { margin-top: 0.35rem; font-size: 0.88rem; color: var(--fg); }
+
+  /* ---------------- FOOTER / CTA ---------------- */
+  .cta { background: #161616; color: #f4f4f4; }
+  .cta .wrap { padding: 3.6rem 1.5rem 3.2rem; }
+  .cta h2 { color: #ffffff; font-size: 1.4rem; }
+  .cta .lede { color: rgba(244,244,244,0.7); }
+  .cta .clone-note {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--accent);
+    margin-top: 1.1rem;
+    letter-spacing: 0.02em;
+  }
+  footer.foot {
+    text-align: center;
+    padding: 1.6rem 1.5rem 2.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: rgba(244,244,244,0.35);
+  }
+
+  @media (max-width: 560px) {
+    section { padding: 2.4rem 0; }
+    .step { grid-template-columns: 1fr; }
+    .step .idx { padding-top: 0; }
+    .phase { grid-template-columns: 1fr; }
+    .phase .num { font-size: 1.1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <div class="topnav-inner">
+    <div class="brand"><span class="dot"></span>CSC // COBOL → JAVA</div>
+    <nav class="navlinks">
+      <a href="#what">系統</a>
+      <a href="#mission">任務</a>
+      <a href="#method">方法論</a>
+      <a href="#quickstart">開始</a>
+      <a href="#stack">技術棧</a>
+    </nav>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="term">
+    <div class="eyebrow">中鋼 CSC · BOBATHON</div>
+    <div class="term-chrome">
+      <div class="term-bar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div class="label">bash — txn-monitor / cobol-to-java</div>
+      </div>
+      <div class="term-body">
+        <div class="term-line"><span class="prompt">$</span>whoami</div>
+        <div class="term-out">信用卡交易監控系統・COBOL 核心 + Node.js API + SQLite</div>
+        <div class="term-line"><span class="prompt">$</span>cat mission.txt</div>
+        <div class="term-out">10 支 COBOL 程式，等你用 Bob 逐支遷移成 Java，且輸出要跟原本分毫不差。</div>
+        <h1 class="hero-title"><span class="from">COBOL</span><span class="arrow">→</span>Java：<br />用 Bob 做一次真正的遺留系統遷移</h1>
+        <!-- <p class="hero-sub">
+          這套信用卡交易監控系統的核心風控邏輯全部寫在 COBOL 裡：高額交易偵測、頻繁交易偵測、
+          重複交易偵測、警示管理，一支都不少。你的任務<strong>不是新增功能</strong>，而是把這
+          10 支程式的行為原封不動地搬到 Java——每一支遷移完成的判定標準只有一個：
+          <strong>同一組輸入，COBOL 跟 Java 吐出一模一樣的 JSON</strong>。
+        </p> -->
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <section id="what">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">現有系統</div>
+        <h2>遷移的起點：一個真的會查資料庫的 COBOL 系統</h2>
+        <p class="lede">不是教材裡的玩具範例——是一條瀏覽器點下去、COBOL 執行檔真的去 shell 出 sqlite3 查資料的完整路徑。</p>
+      </div>
+      <div class="prose">
+        <p>
+          <strong>資料流是這樣走的</strong>：前端送出請求，Node.js 的 Express API 收到後直接
+          <code>spawn</code> 一支編譯好的 COBOL 執行檔，把參數用一行 JSON 字串從 stdin 餵進去；
+          COBOL 程式跑完，把結果印成 JSON 字串到 stdout，Node.js 讀回來、轉發給前端。COBOL
+          程式本身沒有連任何資料庫 driver——它是用 <code>CALL 'SYSTEM'</code> 呼叫 <code>sqlite3</code>
+          這支命令列工具，把查詢結果讀進暫存變數再組回 JSON。
+        </p>
+        <p>
+          這個資料存取方式（shell out 呼叫 CLI）是為了讓練習複雜度可控而簡化過的寫法，
+          <strong>不是真實世界 COBOL 系統常見的樣貌</strong>（真實系統多半是 embedded SQL、CICS、
+          VSAM）。這對「練習 AI 工具怎麼做遷移」是優點：邏輯好讀、好驗證，但也代表這次練習
+          會遇到的複雜度，跟真正的大型主機遷移案還是有落差。
+        </p>
+      </div>
+
+      <div class="flow">
+        <div class="flow-node">
+          <div class="t">瀏覽器 · frontend/</div>
+          <div class="d">純 HTML / CSS / JavaScript，遷移範圍不含這一層。</div>
+        </div>
+        <div class="flow-hop"><span class="arrow">↓</span> HTTP</div>
+
+        <div class="flow-node">
+          <div class="t">Node.js API 層 · api-layer/</div>
+          <div class="d"><code>cobol-bridge.js</code> 只負責轉發，只要 JSON 契約不變，這層可以完全不動。</div>
+        </div>
+        <div class="flow-hop"><span class="arrow">↓</span> spawn 子行程，JSON 字串走 stdin / stdout</div>
+
+        <div class="flow-node">
+          <div class="t">COBOL 執行檔 · cobol/（10 支，遷移對象）</div>
+          <div class="d">6 支查詢程式 + 4 支驗證/警示模組，全部要遷移成 Java。</div>
+        </div>
+        <div class="flow-hop"><span class="arrow">↓</span> <code>CALL 'SYSTEM'</code> shell 出去</div>
+
+        <div class="flow-node">
+          <div class="t">sqlite3 CLI → database/uitc_db.sqlite3</div>
+          <div class="d">單一檔案資料庫；Java 版本可以直接用 JDBC 查，不用再 shell out。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="mission">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">遷移對象</div>
+        <h2>10 支 COBOL 程式</h2>
+        <!-- <p class="lede">全部都是完整、可執行的邏輯——不是空殼待補，這正是遷移練習需要的東西：一個貨真價實的遷移來源。</p> -->
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="n">6</div><div class="l">查詢程式 · cobol/programs/</div></div>
+        <div class="stat"><div class="n">4</div><div class="l">驗證 / 警示模組 · cobol/modules/</div></div>
+        <div class="stat"><div class="n">4</div><div class="l">共用資料存取 copybook</div></div>
+        <div class="stat"><div class="n">1</div><div class="l">組 JSON 契約要維持不變</div></div>
+      </div>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>分類</th>
+              <th>程式</th>
+              <th>要遷移的邏輯</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="group-cell">查詢</td>
+              <td class="file-cell">TXNQRY01~03.cbl</td>
+              <td class="req-cell">查全部交易 / 依 ID 查單筆 / 依卡號查交易</td>
+            </tr>
+            <tr>
+              <td class="group-cell">查詢</td>
+              <td class="file-cell">TXNQRY04, TXNQRY05.cbl</td>
+              <td class="req-cell">最近 N 小時交易（時間運算）／高額交易（金額精度）</td>
+            </tr>
+            <tr>
+              <td class="group-cell">統計</td>
+              <td class="file-cell">TXNSTAT.cbl</td>
+              <td class="req-cell">交易統計聚合（總數、總金額、平均金額）</td>
+            </tr>
+            <tr>
+              <td class="group-cell">驗證</td>
+              <td class="file-cell">TXNVAL01.cbl</td>
+              <td class="req-cell">高額交易偵測：金額 ≥ 50,000 觸發警示</td>
+            </tr>
+            <tr>
+              <td class="group-cell">驗證</td>
+              <td class="file-cell">TXNVAL02.cbl</td>
+              <td class="req-cell">頻繁交易偵測：同卡 1 小時內 &gt; 5 筆</td>
+            </tr>
+            <tr>
+              <td class="group-cell">驗證</td>
+              <td class="file-cell">TXNVAL03.cbl</td>
+              <td class="req-cell">重複交易偵測：同卡同店同金額，5 分鐘內</td>
+            </tr>
+            <tr>
+              <td class="group-cell">警示</td>
+              <td class="file-cell">ALERTMGR.cbl</td>
+              <td class="req-cell">CREATE / QUERY_ALL / QUERY_BY_ID / QUERY_BY_TXN / UPDATE_STATUS 五種操作</td>
+            </tr>
+            <tr>
+              <td class="group-cell">共用</td>
+              <td class="file-cell">DBQRYENV / DBQRYFD / DBQRYWS / DBQRYPROC.cpy</td>
+              <td class="req-cell">shell 出去查 sqlite3 的共用 pattern，要換成 JDBC 直接查詢</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout alert">
+        <strong>容易被 AI 順手「優化掉」的細節：</strong>COBOL 手刻的 <code>STRING</code>/<code>UNSTRING</code>
+        JSON parser、定長欄位的 trailing space、<code>PIC 9(10)V99</code> 的隱含小數精度、
+        <code>PIC Z,ZZZ,ZZ9.99</code> 這類數值格式化——翻譯成 Java 時如果沒有逐行對照原始碼，
+        很容易看起來邏輯差不多、實際上輸出對不上。
+      </div>
+    </div>
+  </section>
+
+  <section id="method">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">四階段方法論</div>
+        <h2>理解 → 規劃 → 建護欄 → 遷移</h2>
+        <p class="lede">每個階段的產出都是下一階段的輸入，串起來才是完整的遷移練習——不是「看起來邏輯差不多」就收工。</p>
+      </div>
+
+      <div class="phases">
+        <div class="phase">
+          <div class="num">01</div>
+          <div class="body">
+            <h3>用 Bob 理解 codebase</h3>
+            <p>請 Bob 逐支說明每支程式的職責、輸入輸出 JSON schema、業務規則的魔術數字（門檻值、時間窗口），
+              並要求「每個結論都要能對應到 PROCEDURE DIVISION 裡實際的程式碼行」，不能憑經驗腦補。</p>
+            <span class="deliverable">→ docs/cobol-understanding-report.md</span>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="num">02</div>
+          <div class="body">
+            <h3>切到 Plan mode，規劃遷移</h3>
+            <p>基於理解報告，規劃目標架構（單純 Java class 還是 Spring Boot service）、COBOL → Java
+              對應表、遷移順序（風險最低的先做，ALERTMGR 最後）、測試涵蓋範圍，以及數值精度／日期格式／
+              字串定長等風險清單。這階段只出計畫，不動程式碼。</p>
+            <span class="deliverable">→ docs/migration-plan.md</span>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="num">03</div>
+          <div class="body">
+            <h3>測試先行，先幫 COBOL 建護欄（characterization tests）</h3>
+            <p>用 <code>database/mock-data.sql</code> 固定測資，把各種輸入 JSON 丟給編譯好的 COBOL
+              執行檔，將 stdout 的輸出存成 fixture 當作 golden output。這一步只釘住現有行為，
+              就算判斷式看起來怪怪的也照實記錄，不自己「修正」。</p>
+            <span class="deliverable">→ tests/fixtures/&lt;程式&gt;/&lt;案例&gt;.expected.json</span>
+          </div>
+        </div>
+
+        <div class="phase">
+          <div class="num">04</div>
+          <div class="body">
+            <h3>逐支遷移，跑測試比對</h3>
+            <p>依照 migration-plan.md 的順序，一支一支走「重讀 COBOL 原始碼 → 寫 Java → 跑
+              characterization test 比對 fixture → 全過才進下一支」的循環。輸出不一致時，
+              先判斷是翻譯錯了還是 fixture 記錄了 COBOL 本身的 bug，兩種情況都要跟講師/隊友確認，
+              不要自己決定要不要保留 COBOL 的行為。</p>
+            <span class="deliverable">→ 10 支全數遷移完成、測試全過</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>驗收標準</strong>：同一組 mock data、同一組輸入 JSON，COBOL 版本與 Java 版本
+        輸出完全一致（數值精度、日期格式、字串內容都要對上），而不是「看起來邏輯一樣」。
+      </div>
+    </div>
+  </section>
+
+  <section id="quickstart">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">快速開始</div>
+        <h2>裝環境、跑起 COBOL 版本、開 Bob 進入四階段</h2>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="idx">01</div>
+          <div class="body">
+            <h3>取得專案</h3>
+            <div class="code-block">
+              <button class="copy-btn" type="button">複製</button>
+              <pre><span class="cmt"># 講師會在活動現場公布實際網址，這裡先用 placeholder</span>
+git clone &lt;GIT_REPO_URL&gt;
+cd transaction-monitor</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="idx">02</div>
+          <div class="body">
+            <h3>安裝環境（macOS）</h3>
+            <div class="code-block">
+              <button class="copy-btn" type="button">複製</button>
+              <pre>brew install gnucobol node sqlite</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="idx">03</div>
+          <div class="body">
+            <h3>初始化資料庫、編譯 COBOL、啟動系統</h3>
+            <div class="code-block">
+              <button class="copy-btn" type="button">複製</button>
+              <pre>sqlite3 database/uitc_db.sqlite3 &lt; database/schema.sql
+sqlite3 database/uitc_db.sqlite3 &lt; database/mock-data.sql
+
+bash scripts/compile-all.sh
+cd api-layer &amp;&amp; npm install &amp;&amp; cp .env.example .env &amp;&amp; npm start</pre>
+            </div>
+            <p class="prose" style="margin-top:0.6rem">
+              打開 <code>http://localhost:8000</code> 確認 COBOL 版本能跑，這就是接下來要拿來
+              比對的「golden output」來源。
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="idx">04</div>
+          <div class="body">
+            <h3>開 Bob，照四階段方法論走</h3>
+            <p class="prose" style="margin-top:0.3rem">
+              先讓 Bob 讀懂 <code>cobol/</code> 目錄產出理解報告，切到 Plan mode 規劃遷移計畫，
+              幫舊系統建好 characterization tests，最後才逐支把邏輯搬進 Java。
+              完整的四階段 prompt 範例在 <code>docs/cobol-to-java-migration-feasibility.md</code>
+              最後一節，可以直接照樣造句。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>Windows 學員：</strong>請用 WSL2 + Ubuntu 執行 COBOL 版本，全程在 WSL 終端機裡操作。
+        COBOL 內部用 <code>CALL 'SYSTEM'</code> 執行的是 Unix shell 語法。 <strong>若想簡化流程，也可以跳過執行COBOL，直接從COBOL -> Java 轉換開始。</strong>
+      </div>
+    </div>
+  </section>
+
+  <section id="stack">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Java 目標架構</div>
+        <h2>留給你決定：邏輯翻譯，還是順便架構現代化？</h2>
+        <p class="lede">兩條路都算完成任務，差別在你想不想順便體驗一次「介面契約不變、底層實作抽換」。</p>
+      </div>
+      <div class="stack-grid">
+        <div class="stack-card"><div class="k">最小可行</div><div class="v">純 Java class + main()，維持 stdin/stdout JSON 契約，api-layer/ 完全不用動</div></div>
+        <div class="stack-card"><div class="k">進階版</div><div class="v">Spring Boot service + JDBC，直接取代 shell-out sqlite3 的查詢方式</div></div>
+        <div class="stack-card"><div class="k">測試策略</div><div class="v">characterization test：先釘住 COBOL 行為，再用同測資比對 Java 輸出</div></div>
+        <div class="stack-card"><div class="k">不變的東西</div><div class="v">JSON 輸入輸出格式、業務規則的判斷邏輯、資料庫內容</div></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="cta">
+  <div class="wrap">
+    <div class="eyebrow" style="color:var(--accent)">準備好了嗎</div>
+    <h2>把 10 支 COBOL 程式，變成 10 支輸出一模一樣的 Java 程式。</h2>
+    <p class="lede">環境裝好、COBOL 版本先跑起來當基準——接下來就是你跟 Bob 的四階段遷移之旅。</p>
+    <div class="code-block" style="margin-top:1.4rem; max-width: 46ch;">
+      <button class="copy-btn" type="button">複製</button>
+      <pre>git clone &lt;GIT_REPO_URL&gt;</pre>
+    </div>
+    <div class="clone-note">// GIT_REPO_URL 為 placeholder，實際網址由講師現場提供</div>
+  </div>
+</div>
+
+<footer class="foot">中鋼 CSC × IBM Bob Workshop — COBOL → Java 遷移挑戰</footer>
+
+<script>
+  document.querySelectorAll(".copy-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var pre = btn.parentElement.querySelector("pre");
+      var text = pre.innerText;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          var orig = btn.textContent;
+          btn.textContent = "已複製";
+          setTimeout(function () { btn.textContent = orig; }, 1400);
+        });
+      }
+    });
+  });
+</script>
+</body>
+</html>
