@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>翻牌配對挑戰 — IBM × 中鋼 × 雄女 Bobathon</title>
+<meta name="description" content="Bobathon 暖身挑戰：15 分鐘跟著 prompt，讓 IBM Bob 做出一個翻牌配對遊戲" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  /* Same "bullet-journal at night" family as the Habit Tracker page,
+     single accent this time since Challenge E is one flat task,
+     not a levelled progression. */
+  :root {
+    --bg: #151a17;
+    --surface: #1e2420;
+    --surface-2: #232a25;
+    --ink: #f4f1e6;
+    --ink-muted: #aab3a5;
+    --ink-faint: #737d70;
+    --border: #313930;
+    --border-soft: #2a3128;
+    --dot: rgba(244, 241, 230, 0.055);
+
+    --accent: #b79bf5;
+    --accent-strong: #9a76ea;
+    --accent-bg: rgba(183, 155, 245, 0.12);
+
+    --coral: #ff8269;
+    --coral-bg: rgba(255, 130, 105, 0.12);
+    --gold: #f5c451;
+
+    --shadow: 0 1px 2px rgba(0,0,0,.35), 0 14px 32px -16px rgba(0,0,0,.6);
+    --radius: 12px;
+    --radius-sm: 7px;
+
+    --font-display: "Fraunces", Georgia, serif;
+    --font-body: "Inter", -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(circle at 1px 1px, var(--dot) 1px, transparent 1px) 0 0 / 24px 24px,
+      var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 17px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  ::selection { background: var(--accent); color: #15101f; }
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible, .copy-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; color: var(--ink); font-weight: 600; }
+  code, .mono { font-family: var(--font-mono); }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 1.5rem; }
+
+  /* ---------------- NAV ---------------- */
+  .topnav { position: sticky; top: 0; z-index: 20; background: rgba(21, 26, 23, 0.88); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border-soft); }
+  .topnav-inner { max-width: 900px; margin: 0 auto; padding: 0.75rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .brand { font-family: var(--font-mono); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.02em; display: flex; align-items: center; gap: 0.5em; white-space: nowrap; }
+  .brand .dot { width: 0.55em; height: 0.55em; border-radius: 2px; background: var(--accent); flex: none; box-shadow: 0 0 0 3px var(--accent-bg); }
+  .navlinks { display: flex; gap: 1.1rem; font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.03em; overflow-x: auto; scrollbar-width: none; }
+  .navlinks::-webkit-scrollbar { display: none; }
+  .navlinks a { color: var(--ink-muted); text-decoration: none; white-space: nowrap; padding: 0.2rem 0; border-bottom: 2px solid transparent; }
+  .navlinks a:hover { color: var(--ink); border-color: var(--border); }
+
+  /* ---------------- HERO ---------------- */
+  .hero { border-bottom: 1px solid var(--border-soft); }
+  .hero-inner { max-width: 900px; margin: 0 auto; padding: 3.6rem 1.5rem 3rem; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 2.5rem; align-items: center; }
+  .eyebrow { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.08em; color: var(--accent); display: flex; align-items: center; gap: 0.6em; text-transform: uppercase; }
+  .eyebrow::before { content: ""; width: 1.4em; height: 1px; background: var(--accent); flex: none; }
+  .hero-title { margin-top: 1rem; font-size: clamp(1.8rem, 4.2vw, 2.7rem); line-height: 1.24; }
+  .hero-title em { font-style: italic; color: var(--accent); font-weight: 500; }
+  .hero-sub { font-size: 1.02rem; line-height: 1.8; color: var(--ink-muted); max-width: 46ch; margin-top: 1.1rem; }
+  .hero-sub strong { color: var(--ink); font-weight: 600; }
+
+  .hero-visual { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.3rem; }
+  .hv-label { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.04em; color: var(--ink-faint); display: flex; justify-content: space-between; margin-bottom: 0.9rem; }
+  .card-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .mini-card {
+    aspect-ratio: 3/4; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+    opacity: 0; transform: rotateY(90deg) scale(0.7);
+    animation: cardIn 0.5s ease-out forwards;
+  }
+  .mini-card.face { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+  .mini-card.face.gold { background: rgba(245, 196, 81, 0.12); border-color: var(--gold); color: var(--gold); }
+  @keyframes cardIn { to { opacity: 1; transform: rotateY(0) scale(1); } }
+  @media (prefers-reduced-motion: reduce) { .mini-card { animation: none; opacity: 1; transform: none; } }
+  .hv-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; padding-top: 0.9rem; border-top: 1px dashed var(--border); }
+  .timer-chip { font-family: var(--font-mono); font-size: 0.78rem; color: var(--coral); display: flex; align-items: center; gap: 0.4em; }
+  .hv-note { font-size: 0.68rem; color: var(--ink-faint); font-family: var(--font-mono); }
+
+  /* ---------------- SECTIONS ---------------- */
+  section { padding: 3.4rem 0; }
+  section + section { border-top: 1px solid var(--border-soft); }
+  .section-head { margin-bottom: 1.8rem; max-width: 64ch; }
+  .section-head h2 { font-size: clamp(1.3rem, 2.8vw, 1.7rem); margin-top: 0.6rem; }
+  .lede { font-size: 1.02rem; color: var(--ink-muted); margin-top: 0.8rem; }
+  p { margin: 0 0 1rem; }
+  p:last-child { margin-bottom: 0; }
+  .prose { max-width: 68ch; color: var(--ink-muted); }
+  .prose strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------------- STAT ROW ---------------- */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin: 1.8rem 0; }
+  .stat { background: var(--surface); padding: 1.1rem 1.1rem 1.2rem; }
+  .stat .n { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .stat .l { font-size: 0.76rem; color: var(--ink-muted); margin-top: 0.15rem; }
+
+  /* ---------------- CHECKLIST ---------------- */
+  .checklist { list-style: none; padding: 0; margin: 1.7rem 0 0; display: flex; flex-direction: column; gap: 0.7rem; }
+  .checklist li { display: flex; align-items: flex-start; gap: 0.7rem; font-size: 0.95rem; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.75rem 0.95rem; }
+  .checklist .mark { flex: none; width: 1.3rem; height: 1.3rem; border-radius: 5px; background: var(--accent-bg); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; margin-top: 0.1rem; }
+  .checklist .txt strong { display: block; font-weight: 600; }
+  .checklist .txt span { display: block; font-size: 0.84rem; color: var(--ink-muted); margin-top: 0.15rem; }
+
+  .callout { border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 var(--radius) var(--radius) 0; padding: 0.95rem 1.1rem; font-size: 0.88rem; color: var(--ink-muted); margin-top: 1.6rem; }
+  .callout strong { color: var(--ink); }
+  .callout.warn { border-left-color: var(--gold); }
+
+  /* ---------------- CODE / PROMPT ---------------- */
+  .code-block { position: relative; background: #10130f; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem 3.2rem 1rem 1.1rem; overflow-x: auto; }
+  .code-block pre { margin: 0; font-family: var(--font-mono); font-size: 0.82rem; color: #eef1e6; white-space: pre-wrap; line-height: 1.75; }
+  .code-block .ph { color: var(--gold); }
+  .copy-btn { position: absolute; top: 0.6rem; right: 0.6rem; font-family: var(--font-mono); font-size: 0.63rem; letter-spacing: 0.03em; color: rgba(244,241,230,0.65); background: rgba(244,241,230,0.08); border: 1px solid rgba(244,241,230,0.16); border-radius: 3px; padding: 0.25rem 0.55rem; cursor: pointer; }
+  .copy-btn:hover { background: rgba(244,241,230,0.16); color: #fff; }
+
+  /* ---------------- CTA / FOOTER ---------------- */
+  .cta { background: #0f130f; color: var(--ink); }
+  .cta .wrap { padding: 3.6rem 1.5rem 3.2rem; text-align: center; }
+  .cta h2 { font-size: clamp(1.3rem, 3vw, 1.8rem); }
+  .cta .lede { color: rgba(244,241,230,0.68); margin: 0.9rem auto 0; max-width: 50ch; }
+  footer.foot { text-align: center; padding: 1.7rem 1.5rem 2.4rem; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); }
+
+  @media (max-width: 720px) { .hero-inner { grid-template-columns: 1fr; } }
+  @media (max-width: 560px) { section { padding: 2.4rem 0; } }
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <div class="topnav-inner">
+    <div class="brand"><span class="dot"></span>MEMORY MATCH // BOBATHON</div>
+    <nav class="navlinks">
+      <a href="#overview">總覽</a>
+      <a href="#requirements">功能需求</a>
+      <a href="#prompt">起手 Prompt</a>
+    </nav>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="eyebrow">IBM × 中鋼 × 雄女 BOBATHON · 暖身挑戰 E</div>
+      <h1 class="hero-title">15 分鐘，讓 Bob<br />幫你做一個<em>翻牌配對遊戲</em></h1>
+      <p class="hero-sub">
+        這是你今天第一次跟 Bob 合作。這一關<strong>不用自己想 prompt</strong>——
+        直接把下面整段複製貼給 Bob，看著它把一個能玩的遊戲生出來，
+        先熟悉介面和節奏，等一下的關卡才輪到你自己動腦寫。
+      </p>
+    </div>
+    <div class="hero-visual">
+      <div class="hv-label"><span>memory-match.html</span><span>12 張卡</span></div>
+      <div class="card-grid" id="cardGrid"></div>
+      <div class="hv-footer">
+        <div class="timer-chip">⏱ 00:07</div>
+        <div class="hv-note">示範畫面 · 翻兩張看是否成對</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <section id="overview">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">總覽</div>
+        <h2>經典翻牌配對，卡面換成 Bobathon 的角色</h2>
+        <p class="lede">
+          規則跟小時候玩的翻牌記憶遊戲一樣：桌上蓋著一排卡牌，每次翻開兩張，
+          圖案相同就配對成功，不同就翻回去，直到全部配對完成。
+          這次卡牌裡藏著三個 Bobathon 主角的 logo——IBM、IBM Bob、中鋼，
+          配上幾組表情符號湊成完整的一副牌。
+        </p>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="n">12</div><div class="l">張卡牌</div></div>
+        <div class="stat"><div class="n">6</div><div class="l">組配對（3 組 Logo + 3 組表情符號）</div></div>
+        <div class="stat"><div class="n">15</div><div class="l">分鐘挑戰時間</div></div>
+      </div>
+
+      <div class="callout">
+        <strong>這一關的重點是「熟悉」，不是「難度」：</strong>把 prompt 貼給 Bob、看它動手、
+        自己玩一輪、覺得哪裡想改就直接跟 Bob 聊——這個來回的節奏，就是接下來所有關卡都會用到的節奏。
+      </div>
+    </div>
+  </section>
+
+  <section id="requirements">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">功能需求</div>
+        <h2>Bob 要做出來的東西長這樣</h2>
+        <p class="lede">這些需求已經寫進下面的 prompt 裡了，這裡列出來是讓你玩的時候知道要檢查什麼。</p>
+      </div>
+
+      <ul class="checklist">
+        <li><span class="mark">✓</span><div class="txt"><strong>12 張卡牌，6 組配對</strong><span>3 組是 IBM／IBM Bob／中鋼 的 logo 圖片，3 組是表情符號（例如水果），每組各 2 張</span></div></li>
+        <li><span class="mark">✓</span><div class="txt"><strong>翻牌 3D 動畫</strong><span>點擊卡牌時有翻轉效果，不是圖片直接切換</span></div></li>
+        <li><span class="mark">✓</span><div class="txt"><strong>配對成功特效</strong><span>兩張牌相同時要有明顯的正向回饋（放大、發光、彈跳都可以）</span></div></li>
+        <li><span class="mark">✓</span><div class="txt"><strong>正計時碼表</strong><span>從第一次翻牌開始往上計時，配對全部完成時停止</span></div></li>
+        <li><span class="mark">✓</span><div class="txt"><strong>最佳紀錄（localStorage）</strong><span>記住最少翻牌次數和最快完成時間，破紀錄時要告訴玩家</span></div></li>
+        <li><span class="mark">✓</span><div class="txt"><strong>完成畫面 + 重新開始</strong><span>全部配對完成後顯示完成畫面（本次時間／翻牌次數），並提供按鈕清除畫面、重新洗牌開始新的一局</span></div></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="prompt">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">起手 Prompt</div>
+        <h2>複製這一整段，貼給 Bob</h2>
+        <p class="lede">開始之前，先確認你已經在專案資料夾的終端機裡——這段 prompt 的第一步會直接抓圖片素材。</p>
+      </div>
+
+      <div class="code-block">
+        <button class="copy-btn" type="button">複製</button>
+        <pre>先在終端機執行以下指令，取得 logo 圖片素材：
+
+git clone <span class="ph">&lt;PLACEHOLDER_REPO_URL&gt;</span>
+cd Memory-Match
+
+資料夾裡有一個 assets/ 目錄，裡面有三張圖：
+- assets/IBM-rebus-logo.png（IBM logo）
+- assets/IBM-Bob-logo.png（IBM Bob logo）
+- assets/CSC-logo.png（中鋼 logo）
+
+接著幫我做一個 HTML 檔案（可以內嵌 CSS 和 JavaScript，不用任何框架），是一個翻牌配對遊戲（Memory Match）：
+
+- 總共 12 張卡牌、6 組配對：3 組是上面那三張 logo 圖片（各出現 2 次），另外 3 組請你自己挑 3 個好看的表情符號（例如水果），每個表情符號也出現 2 次，湊滿 12 張
+- 遊戲開始時卡牌要隨機打亂排列，卡牌背面統一是同一個圖案或顏色，看不出正面是什麼
+- 點擊卡牌會翻開，翻開時要有 3D 翻轉動畫，不要用圖片直接切換
+- 一次最多翻開兩張卡牌：兩張圖案相同就配對成功，讓這兩張保持翻開，並且要有明顯的成功特效（例如放大一下、發光或彈跳動畫）；兩張不同的話，短暫停留一下讓玩家看清楚，再自動翻回背面
+- 畫面上要有一個正計時碼表，從玩家翻開第一張卡開始往上計時，全部配對完成時停止
+- 用 localStorage 記錄「最少翻牌次數」和「最快完成時間」這兩個最佳紀錄，每次玩完都跟紀錄比較，如果打破紀錄要明顯地告訴玩家
+- 全部配對完成後，顯示一個完成畫面，內容包含這次花了多少時間、翻了幾次牌，並提供一個按鈕可以清除畫面、重新洗牌開始新的一局
+
+整體風格希望活潑好玩、色彩豐富，適合學生用，不要做成嚴肅的企業風格介面。</pre>
+      </div>
+
+      <div class="callout warn">
+        <strong>給 Vincent 的提醒：</strong>上面的 <code>&lt;PLACEHOLDER_REPO_URL&gt;</code> 記得換成
+        Memory-Match repo 的實際網址（例如 <code>https://github.com/VincentLi-tw/Memory-Match.git</code>），
+        現場發給學生前務必先確認連結可以正常 clone。
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="cta">
+  <div class="wrap">
+    <div class="eyebrow" style="justify-content:center">準備好了嗎</div>
+    <h2>複製 prompt，貼給 Bob，開始你的第一局。</h2>
+    <p class="lede">15 分鐘後，你應該已經玩過至少一局、也跟 Bob 來回聊過至少一次修改。</p>
+  </div>
+</div>
+
+<footer class="foot">雄女 × 中鋼 × IBM Bob Workshop — 翻牌配對挑戰 1</footer>
+
+<script>
+  // Decorative mini card grid in the hero: mostly face-down, a couple
+  // flipped to preview a logo-slot (accent) and an emoji-slot (gold),
+  // staggered flip-in on load.
+  (function () {
+    var grid = document.getElementById("cardGrid");
+    var faces = ["", "", "", "IBM", "", "🍓", "", "", "Bob", "", "🍋", ""];
+    faces.forEach(function (label, i) {
+      var cell = document.createElement("div");
+      cell.className = "mini-card" + (label ? (label.length > 2 ? " face" : " face gold") : "");
+      cell.textContent = label;
+      cell.style.animationDelay = (i * 45) + "ms";
+      grid.appendChild(cell);
+    });
+  })();
+
+  document.querySelectorAll(".copy-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var pre = btn.parentElement.querySelector("pre");
+      var text = pre.innerText;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          var orig = btn.textContent;
+          btn.textContent = "已複製";
+          setTimeout(function () { btn.textContent = orig; }, 1400);
+        });
+      }
+    });
+  });
+</script>
+</body>
+</html>
