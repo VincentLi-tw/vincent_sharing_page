@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Habit Tracker 挑戰 — IBM × 中鋼 × 雄女 Bobathon</title>
+<meta name="description" content="Bobathon 專案挑戰：用 IBM Bob 打造一個習慣追蹤器，分成 Basic / Advance / Master 三個關卡" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  /* -----------------------------------------------------------
+     TOKENS — "bullet-journal at night" palette. Three level
+     accents (mint / amber / lavender) double as the app's own
+     progress signposting, echoing the streak-heatmap the
+     students are literally asked to build in Level 1.
+  --------------------------------------------------------------*/
+  :root {
+    --bg: #151a17;
+    --bg-soft: #1a2019;
+    --surface: #1e2420;
+    --surface-2: #232a25;
+    --ink: #f4f1e6;
+    --ink-muted: #aab3a5;
+    --ink-faint: #737d70;
+    --border: #313930;
+    --border-soft: #2a3128;
+    --dot: rgba(244, 241, 230, 0.055);
+
+    --basic: #7fe0ab;
+    --basic-strong: #4fc98a;
+    --basic-bg: rgba(127, 224, 171, 0.1);
+
+    --advance: #f5c451;
+    --advance-strong: #dda52a;
+    --advance-bg: rgba(245, 196, 81, 0.1);
+
+    --master: #bb9cf5;
+    --master-strong: #9a76ea;
+    --master-bg: rgba(187, 156, 245, 0.1);
+
+    --coral: #ff8269;
+
+    --shadow: 0 1px 2px rgba(0,0,0,.35), 0 14px 32px -16px rgba(0,0,0,.6);
+    --radius: 12px;
+    --radius-sm: 7px;
+
+    --font-display: "Fraunces", Georgia, serif;
+    --font-body: "Inter", -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(circle at 1px 1px, var(--dot) 1px, transparent 1px) 0 0 / 24px 24px,
+      var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 17px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  ::selection { background: var(--basic); color: #101410; }
+
+  a { color: var(--basic); }
+  a:focus-visible, button:focus-visible, .copy-btn:focus-visible {
+    outline: 2px solid var(--basic);
+    outline-offset: 2px;
+  }
+
+  h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; color: var(--ink); font-weight: 600; }
+  code, .mono { font-family: var(--font-mono); }
+
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 1.5rem; }
+
+  /* ---------------- NAV ---------------- */
+  .topnav {
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(21, 26, 23, 0.88);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .topnav-inner {
+    max-width: 980px; margin: 0 auto; padding: 0.75rem 1.5rem;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  }
+  .brand {
+    font-family: var(--font-mono); font-size: 0.78rem; font-weight: 600;
+    letter-spacing: 0.02em; display: flex; align-items: center; gap: 0.5em; white-space: nowrap;
+  }
+  .brand .dot {
+    width: 0.55em; height: 0.55em; border-radius: 2px;
+    background: var(--basic); flex: none;
+    box-shadow: 0 0 0 3px var(--basic-bg);
+  }
+  .navlinks {
+    display: flex; gap: 1.1rem; font-family: var(--font-mono); font-size: 0.72rem;
+    letter-spacing: 0.03em; overflow-x: auto; scrollbar-width: none;
+  }
+  .navlinks::-webkit-scrollbar { display: none; }
+  .navlinks a {
+    color: var(--ink-muted); text-decoration: none; white-space: nowrap;
+    padding: 0.2rem 0; border-bottom: 2px solid transparent;
+  }
+  .navlinks a:hover { color: var(--ink); border-color: var(--border); }
+
+  /* ---------------- HERO ---------------- */
+  .hero { border-bottom: 1px solid var(--border-soft); }
+  .hero-inner {
+    max-width: 980px; margin: 0 auto; padding: 3.6rem 1.5rem 3rem;
+    display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 2.5rem; align-items: center;
+  }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.08em;
+    color: var(--basic); display: flex; align-items: center; gap: 0.6em; text-transform: uppercase;
+  }
+  .eyebrow::before { content: ""; width: 1.4em; height: 1px; background: var(--basic); flex: none; }
+  .hero-title {
+    margin-top: 1rem; font-size: clamp(1.9rem, 4.4vw, 3rem); line-height: 1.22;
+  }
+  .hero-title em { font-style: italic; color: var(--basic); font-weight: 500; }
+  .hero-sub {
+    font-family: var(--font-body); font-size: 1.03rem; line-height: 1.8;
+    color: var(--ink-muted); max-width: 46ch; margin-top: 1.1rem;
+  }
+  .hero-sub strong { color: var(--ink); font-weight: 600; }
+
+  .hero-visual {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 1.3rem 1.3rem 1.1rem;
+  }
+  .hv-label {
+    font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.04em;
+    color: var(--ink-faint); display: flex; justify-content: space-between; margin-bottom: 0.9rem;
+  }
+  .heat-grid {
+    display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px;
+  }
+  .heat-cell {
+    aspect-ratio: 1; border-radius: 2px; background: var(--surface-2);
+    opacity: 0; transform: scale(0.4);
+    animation: heatIn 0.4s ease-out forwards;
+  }
+  .heat-cell.h1 { background: rgba(127, 224, 171, 0.25); }
+  .heat-cell.h2 { background: rgba(127, 224, 171, 0.5); }
+  .heat-cell.h3 { background: rgba(127, 224, 171, 0.78); }
+  .heat-cell.h4 { background: var(--basic-strong); }
+  @keyframes heatIn { to { opacity: 1; transform: scale(1); } }
+  @media (prefers-reduced-motion: reduce) {
+    .heat-cell { animation: none; opacity: 1; transform: none; }
+  }
+  .hv-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 1rem; padding-top: 0.9rem; border-top: 1px dashed var(--border);
+  }
+  .streak-chip {
+    font-family: var(--font-mono); font-size: 0.78rem; color: var(--coral);
+    display: flex; align-items: center; gap: 0.4em;
+  }
+  .hv-note { font-size: 0.68rem; color: var(--ink-faint); font-family: var(--font-mono); }
+
+  /* ---------------- SECTIONS ---------------- */
+  section { padding: 3.6rem 0; }
+  section + section { border-top: 1px solid var(--border-soft); }
+  .section-head { margin-bottom: 1.9rem; max-width: 66ch; }
+  .section-head h2 { font-size: clamp(1.4rem, 3vw, 1.8rem); margin-top: 0.6rem; }
+  .lede { font-size: 1.03rem; color: var(--ink-muted); margin-top: 0.8rem; }
+  p { margin: 0 0 1rem; }
+  p:last-child { margin-bottom: 0; }
+  .prose { max-width: 68ch; color: var(--ink-muted); }
+  .prose strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------------- SIGNPOST CARDS (overview) ---------------- */
+  .signposts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 2rem 0; }
+  .signpost {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 1.3rem 1.2rem; box-shadow: var(--shadow); border-top: 3px solid var(--lv-color);
+  }
+  .signpost[data-lv="basic"] { --lv-color: var(--basic); }
+  .signpost[data-lv="advance"] { --lv-color: var(--advance); }
+  .signpost[data-lv="master"] { --lv-color: var(--master); }
+  .lvbadge {
+    width: 2rem; height: 2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700;
+    background: var(--lv-color); color: #12160f; margin-bottom: 0.8rem;
+  }
+  .signpost h3 { font-size: 1.02rem; }
+  .signpost .pitch { font-size: 0.88rem; color: var(--ink-muted); margin-top: 0.5rem; }
+  .signpost .fit { font-size: 0.72rem; font-family: var(--font-mono); color: var(--lv-color); margin-top: 0.9rem; }
+
+  /* ---------------- STAT ROW ---------------- */
+  .stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px;
+    background: var(--border); border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; margin: 1.8rem 0;
+  }
+  .stat { background: var(--surface); padding: 1.1rem 1.1rem 1.2rem; }
+  .stat .n { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 700; color: var(--basic); font-variant-numeric: tabular-nums; }
+  .stat .l { font-size: 0.76rem; color: var(--ink-muted); margin-top: 0.15rem; }
+
+  /* ---------------- MISSION TABLE ---------------- */
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+  table { border-collapse: collapse; width: 100%; min-width: 620px; background: var(--surface); }
+  thead th {
+    font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase;
+    text-align: left; color: var(--ink-faint); background: var(--surface-2); padding: 0.65rem 0.9rem;
+    border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  tbody td { padding: 0.68rem 0.9rem; border-bottom: 1px solid var(--border-soft); font-size: 0.86rem; vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  .lv-chip {
+    display: inline-block; font-family: var(--font-mono); font-size: 0.68rem; font-weight: 600;
+    padding: 0.18rem 0.5rem; border-radius: 999px; white-space: nowrap;
+  }
+  .lv-chip.basic { background: var(--basic-bg); color: var(--basic); }
+  .lv-chip.advance { background: var(--advance-bg); color: var(--advance); }
+  .lv-chip.master { background: var(--master-bg); color: var(--master); }
+  .feat-cell { color: var(--ink); font-weight: 500; white-space: nowrap; }
+  .desc-cell { color: var(--ink-muted); }
+
+  .callout {
+    border: 1px solid var(--border); border-left: 3px solid var(--basic);
+    background: var(--surface); border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 0.95rem 1.1rem; font-size: 0.88rem; color: var(--ink-muted); margin-top: 1.6rem;
+  }
+  .callout strong { color: var(--ink); }
+  .callout.advance { border-left-color: var(--advance); }
+  .callout.master { border-left-color: var(--master); }
+
+  /* ---------------- LEVEL DEEP CARDS ---------------- */
+  .lvsection[data-lv="basic"] { --lv: var(--basic); --lv-strong: var(--basic-strong); --lv-bg: var(--basic-bg); }
+  .lvsection[data-lv="advance"] { --lv: var(--advance); --lv-strong: var(--advance-strong); --lv-bg: var(--advance-bg); }
+  .lvsection[data-lv="master"] { --lv: var(--master); --lv-strong: var(--master-strong); --lv-bg: var(--master-bg); }
+
+  .lv-head { display: flex; align-items: center; gap: 0.9rem; }
+  .lv-num {
+    font-family: var(--font-mono); font-size: 1.6rem; font-weight: 700; color: var(--lv);
+    border: 1px solid var(--lv); border-radius: 50%; width: 3rem; height: 3rem;
+    display: flex; align-items: center; justify-content: center; flex: none;
+  }
+  .lv-head .kicker { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em; color: var(--lv); text-transform: uppercase; }
+  .lv-head h2 { font-size: clamp(1.4rem, 3vw, 1.8rem); margin-top: 0.2rem; }
+
+  .checklist { list-style: none; padding: 0; margin: 1.7rem 0 0; display: flex; flex-direction: column; gap: 0.7rem; }
+  .checklist li {
+    display: flex; align-items: flex-start; gap: 0.7rem; font-size: 0.95rem; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 0.75rem 0.95rem;
+  }
+  .checklist .mark {
+    flex: none; width: 1.3rem; height: 1.3rem; border-radius: 5px; background: var(--lv-bg);
+    color: var(--lv); display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 700; margin-top: 0.1rem;
+  }
+  .checklist .txt strong { display: block; font-weight: 600; }
+  .checklist .txt span { display: block; font-size: 0.84rem; color: var(--ink-muted); margin-top: 0.15rem; }
+
+  .deliverable {
+    display: inline-flex; align-items: center; gap: 0.4em; margin-top: 1.5rem;
+    font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.03em; color: var(--lv);
+    background: var(--lv-bg); border-radius: 3px; padding: 0.3rem 0.6rem;
+  }
+
+  /* ---------------- START / RHYTHM ---------------- */
+  .rhythm { display: flex; flex-direction: column; gap: 0.9rem; margin-bottom: 1.8rem; }
+  .rstep { display: grid; grid-template-columns: 1.9rem 1fr; gap: 0.9rem; }
+  .rstep .idx { font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-faint); padding-top: 0.15rem; }
+  .rstep .body h4 { font-family: var(--font-body); font-weight: 600; font-size: 0.92rem; color: var(--ink); margin: 0; display: flex; align-items: center; gap: 0.6em; flex-wrap: wrap; }
+  .rstep .body p { font-size: 0.86rem; color: var(--ink-muted); margin: 0.25rem 0 0; }
+  .rstep.optional {
+    background: var(--surface); border: 1px dashed var(--border);
+    border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin: 0.1rem 0;
+  }
+  .opt-tag {
+    font-family: var(--font-mono); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.03em;
+    color: var(--advance); background: var(--advance-bg); border-radius: 999px; padding: 0.15rem 0.55rem;
+  }
+
+  /* ---------------- STACK ---------------- */
+  .stack-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; }
+  .stack-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 1.1rem 1.2rem; border-top: 3px solid var(--sc-color, var(--border));
+  }
+  .stack-card .k { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.05em; color: var(--ink-faint); text-transform: uppercase; }
+  .stack-card .v { margin-top: 0.4rem; font-size: 0.9rem; color: var(--ink); line-height: 1.6; }
+
+  /* ---------------- CTA / FOOTER ---------------- */
+  .cta { background: #0f130f; color: var(--ink); }
+  .cta .wrap { padding: 3.8rem 1.5rem 3.4rem; text-align: center; }
+  .cta h2 { font-size: clamp(1.4rem, 3.4vw, 2rem); }
+  .cta .lede { color: rgba(244,241,230,0.68); margin: 0.9rem auto 0; max-width: 52ch; }
+  .cta .badges { display: flex; justify-content: center; gap: 0.6rem; margin-top: 1.7rem; flex-wrap: wrap; }
+  .cta .badges span {
+    font-family: var(--font-mono); font-size: 0.72rem; padding: 0.4rem 0.8rem; border-radius: 999px;
+    border: 1px solid var(--border);
+  }
+  .cta .badges span.basic { color: var(--basic); border-color: var(--basic); }
+  .cta .badges span.advance { color: var(--advance); border-color: var(--advance); }
+  .cta .badges span.master { color: var(--master); border-color: var(--master); }
+  footer.foot { text-align: center; padding: 1.7rem 1.5rem 2.4rem; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); }
+
+  @media (max-width: 760px) {
+    .hero-inner { grid-template-columns: 1fr; }
+    .signposts { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    section { padding: 2.6rem 0; }
+    .rstep { grid-template-columns: 1fr; }
+    .rstep .idx { padding-top: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <div class="topnav-inner">
+    <div class="brand"><span class="dot"></span>HABIT // BOBATHON</div>
+    <nav class="navlinks">
+      <a href="#overview">任務地圖</a>
+      <a href="#basic">Lv.1 Basic</a>
+      <a href="#advance">Lv.2 Advance</a>
+      <a href="#master">Lv.3 Master</a>
+      <a href="#start">起手式</a>
+      <a href="#stack">技術棧</a>
+    </nav>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="eyebrow">IBM × 中鋼 × 雄女 BOBATHON · Day 2 專案實作</div>
+      <h1 class="hero-title">打造一個<br /><em>你會想每天打開</em>的習慣追蹤器</h1>
+      <p class="hero-sub">
+        從一個能打卡的網頁，到懂得算完成率、生報告，甚至能被 Bob 直接呼叫的工具——
+        挑戰分成 <strong>Basic → Advance → Master</strong> 三個關卡，一關比一關更接近「真正的產品」。
+        沒人規定你要破完三關，但每往前一關，你會更清楚 Bob 能幫你走多遠。
+      </p>
+    </div>
+    <div class="hero-visual">
+      <div class="hv-label"><span>habit-heatmap.png</span><span>本月</span></div>
+      <div class="heat-grid" id="heatGrid"></div>
+      <div class="hv-footer">
+        <div class="streak-chip">🔥 連續 21 天</div>
+        <div class="hv-note">示範資料 · Lv.1 要做出的東西</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <section id="overview">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">任務地圖</div>
+        <h2>同一個 App，三種深度</h2>
+        <p class="lede">
+          三個關卡疊在同一個習慣追蹤器上：Advance 建立在 Basic 之上，Master 建立在 Advance 之上。
+          你可以在 Day 2 的三個實作時段裡，一路往上打，也可以在任何一關停下來，
+          因為每一關做完，都已經是一個能實際使用的東西。
+        </p>
+      </div>
+
+      <div class="signposts">
+        <div class="signpost" data-lv="basic">
+          <div class="lvbadge">1</div>
+          <h3>Basic</h3>
+          <p class="pitch">單一 HTML 檔案，打卡、算連續天數、畫出熱力圖。15 分鐘內就能看到「滿版」成果。</p>
+          <div class="fit">適合：想先求有成就感</div>
+        </div>
+        <div class="signpost" data-lv="advance">
+          <div class="lvbadge">2</div>
+          <h3>Advance</h3>
+          <p class="pitch">拆成前端＋本地 Server，加上完成率、分類、可分享的每週回顧報告卡。</p>
+          <div class="fit">適合：想體驗前後端分工</div>
+        </div>
+        <div class="signpost" data-lv="master">
+          <div class="lvbadge">3</div>
+          <h3>Master</h3>
+          <p class="pitch">串上真實 API 讓網頁「活起來」，再把整個工具包裝成 Bob 能呼叫的 MCP Server。</p>
+          <div class="fit">適合：想挑戰 AI 互通</div>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="n">3</div><div class="l">個關卡</div></div>
+        <div class="stat"><div class="n">11</div><div class="l">項要做出的功能</div></div>
+        <div class="stat"><div class="n">320</div><div class="l">分鐘 · Day 2 實作時段</div></div>
+      </div>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>關卡</th><th>功能</th><th>說明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="lv-chip basic">BASIC</span></td><td class="feat-cell">新增／刪除習慣</td><td class="desc-cell">建立自己想追蹤的習慣清單</td></tr>
+            <tr><td><span class="lv-chip basic">BASIC</span></td><td class="feat-cell">打卡 + localStorage</td><td class="desc-cell">按下去記錄「今天完成」，重整網頁也不會消失</td></tr>
+            <tr><td><span class="lv-chip basic">BASIC</span></td><td class="feat-cell">連續天數 Streak</td><td class="desc-cell">算出目前連續打卡幾天，斷了要重新算</td></tr>
+            <tr><td><span class="lv-chip basic">BASIC</span></td><td class="feat-cell">本月熱力圖</td><td class="desc-cell">像 GitHub 貢獻圖一樣，格子顏色代表有沒有打卡</td></tr>
+            <tr><td><span class="lv-chip basic">BASIC</span></td><td class="feat-cell">一鍵產生示範資料</td><td class="desc-cell">隨機補上這個月的打卡紀錄，馬上看到熱力圖被填滿</td></tr>
+            <tr><td><span class="lv-chip advance">ADVANCE</span></td><td class="feat-cell">依頻率算完成率</td><td class="desc-cell">習慣可設定每天／每週幾次，完成率照頻率換算</td></tr>
+            <tr><td><span class="lv-chip advance">ADVANCE</span></td><td class="feat-cell">習慣分類標籤</td><td class="desc-cell">健康／學習／生活等分類，用顏色區分</td></tr>
+            <tr><td><span class="lv-chip advance">ADVANCE</span></td><td class="feat-cell">每週回顧報告卡</td><td class="desc-cell">整理成一張可以截圖分享的卡片</td></tr>
+            <tr><td><span class="lv-chip advance">ADVANCE</span></td><td class="feat-cell">前後端分離 + 本地 Server</td><td class="desc-cell">資料改存在後端，不再只靠瀏覽器</td></tr>
+            <tr><td><span class="lv-chip master">MASTER</span></td><td class="feat-cell">串接激勵語 API</td><td class="desc-cell">打卡成功時隨機跳出一句鼓勵的話</td></tr>
+            <tr><td><span class="lv-chip master">MASTER</span></td><td class="feat-cell">包裝成 MCP Server</td><td class="desc-cell">讓 Bob 能直接呼叫工具幫你打卡、查連續天數</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout">
+        <strong>沒破到 Master 完全沒問題：</strong>Basic 做完，就已經是一個能實際打開來用的完整小工具——
+        後面兩關是「還想再走多遠」的選擇題，不是及格線。
+      </div>
+    </div>
+  </section>
+
+  <section id="basic" class="lvsection" data-lv="basic">
+    <div class="wrap">
+      <div class="lv-head">
+        <div class="lv-num">01</div>
+        <div>
+          <div class="kicker">Level 1 · 單檔前端</div>
+          <h2>Basic — 讓它先能動、還要能被看見</h2>
+        </div>
+      </div>
+      <p class="prose" style="margin-top:1.2rem">
+        目標不是做出完美的介面，而是把「打卡 → 記住 → 算出連續天數 → 畫成看得懂的圖」這條路走通。
+        因為只有一天時間，<strong>手動打卡不可能填滿一整個月</strong>，所以「產生示範資料」這顆按鈕
+        跟打卡功能一樣重要——它讓你在 15 分鐘內，就看到自己做出來的東西「滿版」是什麼樣子。
+      </p>
+
+      <ul class="checklist">
+        <li><span class="mark">✓</span><div class="txt"><strong>新增／刪除習慣</strong><span>輸入名稱就能加入清單，也能移除不想追蹤的項目</span></div></li>
+        <li><span class="mark">✓</span><div class="txt"><strong>打卡 + localStorage</strong><span>每個習慣旁邊一顆打卡按鈕，資料存在瀏覽器，重整不會不見</span></div></li>
+        <li><span class="mark">✓</span><div class="txt"><strong>連續天數 Streak</strong><span>顯示目前連續打卡幾天，只要斷一天就從頭算起</span></div></li>
+        <li><span class="mark">✓</span><div class="txt"><strong>本月熱力圖</strong><span>月曆式格子，打過卡的格子有顏色、深淺代表狀態</span></div></li>
+        <li><span class="mark">✓</span><div class="txt"><strong>一鍵產生示範資料</strong><span>隨機補上本月打卡紀錄，讓熱力圖立刻有內容可看</span></div></li>
+      </ul>
+
+      <div class="callout">
+        <strong>為什麼一定要有這顆按鈕：</strong>沒有它，你的熱力圖今天就只有一格顏色——
+        很難判斷「這個功能到底做對了沒」。假資料讓你能立刻檢查：格子顏色的深淺邏輯對不對、
+        streak 算法在資料斷掉的地方有沒有正確歸零。
+      </div>
+
+      <div class="deliverable">→ 過關標準：重整網頁後，打卡紀錄、streak、熱力圖都還在</div>
+    </div>
+  </section>
+
+  <section id="advance" class="lvsection" data-lv="advance">
+    <div class="wrap">
+      <div class="lv-head">
+        <div class="lv-num">02</div>
+        <div>
+          <div class="kicker">Level 2 · 前端 + 本地 Server</div>
+          <h2>Advance — 資料要交給後端管，數字要更誠實</h2>
+        </div>
+      </div>
+      <p class="prose" style="margin-top:1.2rem">
+        Basic 版本的「完成率」其實沒那麼準——如果你只在意「一週三次」的習慣，
+        跟每天都要打卡的習慣，不應該用同一套標準比較。這一關要讓數字更貼近真實情況，
+        同時把資料搬出瀏覽器，交給一台你自己架的本地 Server 管理。
+      </p>
+
+      <ul class="checklist">
+        <li><span class="mark">✓</span><div class="txt"><strong>依頻率計算完成率</strong><span>習慣可設定每天／每週幾次，完成率照設定的頻率換算，而不是單純算打卡次數</span></div></li>
+        <li><span class="mark">✓</span><div class="txt"><strong>習慣分類標籤</strong><span>健康／學習／生活……自訂分類，用顏色快速分辨</span></div></li>
+        <li><span class="mark">✓</span><div class="txt"><strong>每週回顧報告卡</strong><span>統計這週的完成率與最長連續紀錄，整理成一張可截圖分享的卡片</span></div></li>
+        <li><span class="mark">✓</span><div class="txt"><strong>前後端分離 + 本地 Server</strong><span>資料改存在你自己架的後端，前端改用 API 讀寫資料</span></div></li>
+      </ul>
+
+      <div class="callout advance">
+        <strong>Server 用什麼寫，自己決定：</strong>Node.js + Express 或 Python + Flask 都可以——
+        挑你和 Bob 討論起來比較順手的那個，資料要存 SQLite 還是 JSON 檔也是你的選擇，
+        重點是前端不再直接碰資料，一律透過 API。
+      </div>
+
+      <div class="deliverable">→ 過關標準：關掉瀏覽器分頁再重開，資料還在後端，不是靠瀏覽器記住的</div>
+    </div>
+  </section>
+
+  <section id="master" class="lvsection" data-lv="master">
+    <div class="wrap">
+      <div class="lv-head">
+        <div class="lv-num">03</div>
+        <div>
+          <div class="kicker">Level 3 · 串接外部世界</div>
+          <h2>Master — 讓它活起來，也讓 Bob 用得到它</h2>
+        </div>
+      </div>
+      <p class="prose" style="margin-top:1.2rem">
+        最後一關只加兩件事，但兩件事的方向不一樣：一個是讓網頁本身有「活的」內容，
+        另一個是讓你做出來的整個工具，變成 Bob 自己也能拿來用的東西。
+      </p>
+
+      <ul class="checklist">
+        <li><span class="mark">✓</span><div class="txt"><strong>串接激勵語 API</strong><span>打卡成功或打開網頁時，隨機顯示一句外部 API 回傳的鼓勵語，內容不再是寫死的陣列</span></div></li>
+        <li><span class="mark">✓</span><div class="txt"><strong>包裝成 MCP Server</strong><span>把「新增習慣」「打卡」「查連續天數」「產生本週報告」這些功能，包裝成 Bob 能直接呼叫的工具</span></div></li>
+      </ul>
+
+      <div class="callout master">
+        <strong>MCP Server 白話一點是什麼：</strong>平常你要查自己連續打卡幾天，得打開網頁、找到那個習慣、看數字。
+        包成 MCP Server 之後，你可以直接跟 Bob 說「幫我查跑步連續幾天了」，
+        Bob 會呼叫你寫的工具去問後端、把答案讀給你聽——你的 App 從「一個網頁」變成「Bob 的一項技能」。
+      </div>
+
+      <div class="deliverable">→ 過關標準：跟 Bob 說一句查詢連續天數的話，Bob 能透過你的 MCP Server 答對</div>
+    </div>
+  </section>
+
+  <section id="start">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">起手式</div>
+        <h2>怎麼跟 Bob 開始這場對話</h2>
+        <p class="lede">Prompt 要自己想、自己寫——這裡不會給你台詞，只教你跟 Bob 合作的節奏。每一關都照這個順序走一輪。</p>
+      </div>
+
+      <div class="rhythm">
+        <div class="rstep">
+          <div class="idx">01</div>
+          <div class="body"><h4>切換 Plan Mode，先講架構不要急著動手</h4><p>把這一關想做的功能、資料打算怎麼存、畫面大概長什麼樣子，整個跟 Bob 講一遍，讓它先規劃、不要先寫程式</p></div>
+        </div>
+        <div class="rstep">
+          <div class="idx">02</div>
+          <div class="body"><h4>把架構過一遍，確認沒問題</h4><p>看 Bob 整理出來的規劃是不是你要的，覺得哪裡怪就在這階段來回討論、調整——留到寫完才發現方向錯了，成本高很多</p></div>
+        </div>
+        <div class="rstep optional">
+          <div class="idx">03</div>
+          <div class="body">
+            <h4>先讓 Bob 寫測試<span class="opt-tag">非必要 · 進階玩法</span></h4>
+            <p>想挑戰的話，可以先讓 Bob 針對確認好的規劃寫測試案例（TDD），之後每完成一個功能就跑一次測試，確保沒有弄壞前面做好的東西。只是想快點看到成果的話，這步可以跳過</p>
+          </div>
+        </div>
+        <div class="rstep">
+          <div class="idx">04</div>
+          <div class="body"><h4>切換 Agent Mode，開始動手</h4><p>架構談好了，才切到 Agent mode 讓 Bob 實際寫程式</p></div>
+        </div>
+        <div class="rstep">
+          <div class="idx">05</div>
+          <div class="body"><h4>自己實際打卡測試</h4><p>連續打好幾天、故意斷一天，看 streak 算得對不對</p></div>
+        </div>
+        <div class="rstep">
+          <div class="idx">06</div>
+          <div class="body"><h4>把問題丟回去給 Bob</h4><p>畫面截圖、錯誤訊息，比空口描述「怪怪的」更容易讓 Bob 抓到問題</p></div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>這一關真正在練的不是打字速度，是想清楚再開口。</strong>
+        Plan mode 逼你在動手前先把整個系統想過一遍——這跟你自己寫程式時「先想再寫」是同一件事，
+        只是現在你的隊友換成了 Bob。
+      </div>
+    </div>
+  </section>
+
+  <section id="stack">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">技術棧</div>
+        <h2>三關卡，三種技術棧</h2>
+        <p class="lede">每一關都在前一關的基礎上加東西，唯一不變的規則：升級的時候，前一關做好的功能要繼續能用。</p>
+      </div>
+      <div class="stack-grid">
+        <div class="stack-card" style="--sc-color: var(--basic)"><div class="k">Basic</div><div class="v">純 HTML + CSS + JavaScript，單一檔案，靠 localStorage 記資料</div></div>
+        <div class="stack-card" style="--sc-color: var(--advance)"><div class="k">Advance</div><div class="v">前端不變 + 本地 Server（Node.js/Express 或 Python/Flask 自選）+ SQLite 或 JSON 檔儲存</div></div>
+        <div class="stack-card" style="--sc-color: var(--master)"><div class="k">Master</div><div class="v">外部激勵語 API + 把後端功能包裝成 MCP Server，讓 Bob 能當工具呼叫</div></div>
+        <div class="stack-card"><div class="k">不變的東西</div><div class="v">升級到下一關時，前面關卡做出來的功能都要繼續正常運作</div></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="cta">
+  <div class="wrap">
+    <div class="eyebrow" style="justify-content:center">準備好了嗎</div>
+    <h2>打開 Bob，從 Basic 的第一個 Prompt 開始。</h2>
+    <p class="lede">15 分鐘看到第一版能動的東西，剩下的時間，看你能陪 Bob 走到哪一關。</p>
+    <div class="badges">
+      <span class="basic">● Lv.1 Basic</span>
+      <span class="advance">● Lv.2 Advance</span>
+      <span class="master">● Lv.3 Master</span>
+    </div>
+  </div>
+</div>
+
+<footer class="foot">雄女 × 中鋼 × IBM Bob Workshop — Habit Tracker 挑戰</footer>
+
+<script>
+  // Generate the hero heatmap grid: a static-but-varied pattern of
+  // intensity classes, staggered fade/scale-in on load.
+  (function () {
+    var grid = document.getElementById("heatGrid");
+    var cols = 9, rows = 5;
+    var levels = ["h0", "h1", "h2", "h3", "h4"];
+    // Weighted so the grid reads like a real "mostly consistent" streak.
+    var weights = [0.1, 0.15, 0.2, 0.25, 0.3];
+    for (var i = 0; i < cols * rows; i++) {
+      var cell = document.createElement("div");
+      var r = Math.random();
+      var acc = 0, chosen = "h0";
+      for (var j = 0; j < weights.length; j++) {
+        acc += weights[j];
+        if (r <= acc) { chosen = levels[j]; break; }
+      }
+      cell.className = "heat-cell " + chosen;
+      cell.style.animationDelay = (i * 14) + "ms";
+      grid.appendChild(cell);
+    }
+  })();
+</script>
+</body>
+</html>
