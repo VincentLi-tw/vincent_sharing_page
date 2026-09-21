@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>wxO 報價試算</title>
+<meta name="description" content="watsonx Orchestrate 各方案定價說明，含台灣報價折扣試算機">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&family=Manrope:wght@500;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<style>
+  :root{
+    --bg:#f5f6fa;
+    --surface:#ffffff;
+    --surface-2:#f0f1f6;
+    --border:#e0e2ea;
+    --border-strong:#c9cbd8;
+    --text:#1b1e2b;
+    --text-muted:#5b5f72;
+    --text-faint:#8b8fa3;
+    --accent:#3648c9;
+    --accent-strong:#26359e;
+    --accent-soft:#eaecfb;
+    --accent-soft-border:#c6cbf3;
+    --good:#0f8a4c;
+    --good-soft:#e5f6ec;
+    --danger:#c62828;
+    --danger-soft:#fbeaea;
+    --warn:#a15c00;
+    --warn-soft:#fdf1de;
+    --warn-border:#f0c987;
+    --chip-bg:#eef0f6;
+    --shadow: 0 1px 2px rgba(20,22,40,.04), 0 8px 24px -12px rgba(20,22,40,.18);
+    --shadow-lg: 0 24px 60px -20px rgba(20,22,40,.45);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0e1018;
+      --surface:#171a27;
+      --surface-2:#1e2233;
+      --border:#2b2f42;
+      --border-strong:#3a3f57;
+      --text:#eef0f8;
+      --text-muted:#a7abc2;
+      --text-faint:#767a92;
+      --accent:#7c89f7;
+      --accent-strong:#97a2ff;
+      --accent-soft:#232a52;
+      --accent-soft-border:#3a4390;
+      --good:#3ecf82;
+      --good-soft:#153726;
+      --danger:#ff6b6b;
+      --danger-soft:#3a1c1e;
+      --warn:#f2b545;
+      --warn-soft:#3a2c10;
+      --warn-border:#6b4f14;
+      --chip-bg:#232637;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+      --shadow-lg: 0 24px 60px -20px rgba(0,0,0,.7);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1018;
+    --surface:#171a27;
+    --surface-2:#1e2233;
+    --border:#2b2f42;
+    --border-strong:#3a3f57;
+    --text:#eef0f8;
+    --text-muted:#a7abc2;
+    --text-faint:#767a92;
+    --accent:#7c89f7;
+    --accent-strong:#97a2ff;
+    --accent-soft:#232a52;
+    --accent-soft-border:#3a4390;
+    --good:#3ecf82;
+    --good-soft:#153726;
+    --danger:#ff6b6b;
+    --danger-soft:#3a1c1e;
+    --warn:#f2b545;
+    --warn-soft:#3a2c10;
+    --warn-border:#6b4f14;
+    --chip-bg:#232637;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+    --shadow-lg: 0 24px 60px -20px rgba(0,0,0,.7);
+    color-scheme: dark;
+  }
+
+  *{box-sizing:border-box;}
+  [hidden]{ display:none !important; }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Noto Sans TC","Manrope",-apple-system,BlinkMacSystemFont,sans-serif;
+    padding:32px 20px 64px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .num{ font-family:"Manrope","Noto Sans TC",sans-serif; font-variant-numeric:tabular-nums; letter-spacing:-0.01em; }
+  .mono{ font-family:"IBM Plex Mono",monospace; }
+
+  .wrap{ max-width:1180px; margin:0 auto; }
+
+  /* ---------- header ---------- */
+  header.page{ margin-bottom:28px; }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:12px; font-weight:700; letter-spacing:.08em;
+    color:var(--accent-strong); background:var(--accent-soft);
+    border:1px solid var(--accent-soft-border);
+    padding:5px 12px; border-radius:999px; margin-bottom:14px;
+  }
+  .eyebrow .dot{ width:6px;height:6px;border-radius:50%;background:var(--accent-strong); }
+  h1{ font-size:clamp(26px,4vw,36px); font-weight:900; margin:0 0 8px; text-wrap:balance; letter-spacing:-0.01em; }
+  .sub{ color:var(--text-muted); font-size:15px; max-width:640px; line-height:1.7; margin:0; }
+
+  .tw-banner{
+    margin-top:20px; display:flex; gap:12px; align-items:flex-start;
+    background:var(--surface); border:1px solid var(--border); border-left:4px solid var(--accent);
+    border-radius:12px; padding:14px 16px; box-shadow:var(--shadow);
+  }
+  .tw-banner svg{ flex:none; width:20px;height:20px; color:var(--accent-strong); margin-top:2px; }
+  .tw-banner p{ margin:0; font-size:13.5px; line-height:1.75; color:var(--text-muted); }
+  .tw-banner b{ color:var(--text); font-weight:700; }
+
+  /* ---------- tabs ---------- */
+  .tabbar{
+    display:flex; gap:6px; background:var(--surface-2); border:1px solid var(--border);
+    padding:5px; border-radius:12px; margin:28px 0 16px; width:fit-content; max-width:100%; overflow-x:auto;
+  }
+  .tabbtn{
+    appearance:none; border:none; background:transparent; color:var(--text-muted);
+    font-family:inherit; font-size:14.5px; font-weight:700; padding:9px 18px; border-radius:8px;
+    cursor:pointer; white-space:nowrap; transition:background .15s, color .15s;
+  }
+  .tabbtn:hover{ color:var(--text); }
+  .tabbtn.active{ background:var(--accent); color:#fff; box-shadow:var(--shadow); }
+
+  .subtabbar{ display:flex; gap:8px; margin-bottom:22px; flex-wrap:wrap; }
+  .subtabbtn{
+    appearance:none; cursor:pointer; font-family:inherit;
+    border:1px solid var(--border-strong); background:var(--surface); color:var(--text);
+    font-size:13.5px; font-weight:600; padding:7px 14px; border-radius:999px;
+    display:inline-flex; align-items:center; gap:7px; transition:.15s;
+  }
+  .subtabbtn .tag{ font-size:10.5px; font-weight:700; color:var(--text-faint); background:var(--chip-bg); padding:1px 7px; border-radius:5px; }
+  .subtabbtn:hover{ border-color:var(--accent); }
+  .subtabbtn.active{ background:var(--accent-soft); border-color:var(--accent); color:var(--accent-strong); }
+  .subtabbtn.active .tag{ background:var(--accent); color:#fff; }
+
+  .panel{ display:none; }
+  .panel.active{ display:block; animation:fade .25s ease; }
+  @keyframes fade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+
+  /* ---------- cards ---------- */
+  .grid{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px;
+  }
+  .grid.cols-2{ grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); }
+
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:22px 20px 20px; box-shadow:var(--shadow); display:flex; flex-direction:column;
+    position:relative; overflow:hidden;
+  }
+  .card.tier-standard{ border-color:var(--accent-soft-border); }
+  .card.tier-premium{
+    border-color:var(--accent);
+    background:linear-gradient(175deg, var(--accent-soft) 0%, var(--surface) 42%);
+  }
+  .card-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:14px; }
+  .tier-name{ font-size:16px; font-weight:800; margin:0 0 3px; }
+  .tier-plat{ font-size:11.5px; color:var(--text-faint); font-weight:700; letter-spacing:.04em; }
+  .tier-badge{
+    font-size:10.5px; font-weight:800; letter-spacing:.03em; padding:3px 9px; border-radius:999px;
+    background:var(--chip-bg); color:var(--text-muted); flex:none;
+  }
+  .tier-badge.b-standard{ background:var(--accent-soft); color:var(--accent-strong); }
+  .tier-badge.b-premium{ background:var(--accent); color:#fff; }
+
+  .price-block{ margin:6px 0 16px; }
+  .price-usflag{ font-size:11px; color:var(--text-faint); font-weight:600; margin-bottom:2px; }
+  .price-tw{ display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; }
+  .price-tw .amt{ font-size:clamp(22px,4.2vw,30px); font-weight:800; line-height:1.2; word-break:break-word; }
+  .price-tw .unit{ font-size:13px; color:var(--text-muted); font-weight:600; white-space:nowrap; }
+  .price-us{ font-size:12.5px; color:var(--text-faint); margin-top:4px; }
+
+  .part-tag{
+    display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700;
+    color:var(--accent-strong); background:var(--accent-soft); border:1px solid var(--accent-soft-border);
+    padding:3px 8px 3px 6px; border-radius:6px; margin-top:8px;
+  }
+  .part-tag .pn{ font-family:"IBM Plex Mono",monospace; letter-spacing:.01em; }
+  .part-tag .pn-lbl{ color:var(--text-faint); font-weight:600; }
+
+  .feat-list{ list-style:none; margin:0 0 16px; padding:0; display:flex; flex-direction:column; gap:7px; flex:1; }
+  .feat-list li{ font-size:13px; color:var(--text-muted); line-height:1.55; display:flex; gap:8px; }
+  .feat-list li::before{ content:"✓"; color:var(--good); font-weight:800; flex:none; }
+  .feat-list li b{ color:var(--text); font-weight:700; }
+  .card-note{ font-size:11.5px; color:var(--text-faint); background:var(--surface-2); border-radius:8px; padding:8px 10px; margin-bottom:14px; line-height:1.6; }
+
+  .items-table{ width:100%; border-collapse:collapse; margin-bottom:14px; font-size:12.5px; }
+  .items-table th{ text-align:left; font-size:10.5px; color:var(--text-faint); font-weight:700; letter-spacing:.03em; padding:0 0 6px; border-bottom:1px solid var(--border); }
+  .items-table td{ padding:8px 0; border-bottom:1px dashed var(--border); color:var(--text-muted); vertical-align:top; }
+  .items-table tr:last-child td{ border-bottom:none; }
+  .items-table td.item-label{ color:var(--text); font-weight:700; }
+  .items-table td.item-note{ font-size:11px; color:var(--text-faint); }
+  .items-table td.item-price{ text-align:right; white-space:nowrap; font-weight:700; color:var(--text); }
+  .items-total{ display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:6px 10px; padding-top:8px; border-top:1px solid var(--border-strong); margin-bottom:14px; }
+  .items-total .lbl{ font-size:12.5px; font-weight:700; color:var(--text-muted); }
+  .items-total .val{ font-size:clamp(18px,4vw,22px); font-weight:800; word-break:break-word; }
+
+  .ru-box{
+    font-size:11.5px; line-height:1.75; color:var(--text-muted);
+    background:var(--good-soft); border:1px solid var(--good); border-left-width:3px; border-radius:8px;
+    padding:10px 12px; margin-bottom:14px;
+  }
+  .ru-box b{ color:var(--text); font-weight:700; }
+  .ru-banner{
+    display:flex; gap:12px; align-items:flex-start; background:var(--surface); border:1px solid var(--border);
+    border-left:4px solid var(--good); border-radius:12px; padding:14px 16px; box-shadow:var(--shadow); margin-bottom:20px;
+  }
+  .ru-banner svg{ flex:none; width:20px;height:20px; color:var(--good); margin-top:2px; }
+  .ru-banner p{ margin:0; font-size:13px; line-height:1.8; color:var(--text-muted); }
+  .ru-banner b{ color:var(--text); font-weight:700; }
+
+  .calc-btn{
+    appearance:none; cursor:pointer; width:100%; border:none; border-radius:10px;
+    background:var(--accent); color:#fff; font-family:inherit; font-weight:700; font-size:13.5px;
+    padding:11px 14px; display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:background .15s, transform .1s; margin-top:auto;
+  }
+  .calc-btn:hover{ background:var(--accent-strong); }
+  .calc-btn:active{ transform:scale(.98); }
+  .calc-btn svg{ width:16px;height:16px; }
+
+  footer.note{ margin-top:40px; font-size:11.5px; color:var(--text-faint); line-height:1.8; border-top:1px solid var(--border); padding-top:16px; }
+
+  /* ---------- modal ---------- */
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(10,11,20,.55); backdrop-filter:blur(3px);
+    display:flex; align-items:center; justify-content:center; padding:20px; z-index:100;
+    opacity:0; pointer-events:none; transition:opacity .18s ease;
+  }
+  .modal-backdrop.open{ opacity:1; pointer-events:auto; }
+  .modal{
+    background:var(--surface); border:1px solid var(--border); border-radius:18px;
+    width:min(980px,100%); max-height:92vh; overflow-y:auto; box-shadow:var(--shadow-lg);
+    transform:translateY(10px) scale(.98); transition:transform .18s ease;
+  }
+  .modal-backdrop.open .modal{ transform:translateY(0) scale(1); }
+  .modal-head{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+    padding:20px 24px; border-bottom:1px solid var(--border); position:sticky; top:0;
+    background:var(--surface); z-index:2; border-radius:18px 18px 0 0;
+  }
+  .modal-head h2{ margin:0 0 4px; font-size:18px; font-weight:800; }
+  .modal-head .plat{ font-size:12px; color:var(--text-faint); font-weight:600; }
+  .modal-close{
+    appearance:none; border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text-muted);
+    width:32px;height:32px; border-radius:9px; cursor:pointer; flex:none; display:flex; align-items:center; justify-content:center;
+  }
+  .modal-close:hover{ color:var(--text); border-color:var(--accent); }
+
+  .modal-body{ display:grid; grid-template-columns:280px 1fr; gap:0; }
+  @media (max-width:760px){ .modal-body{ grid-template-columns:1fr; } }
+
+  .calc-params{ padding:20px; border-right:1px solid var(--border); display:flex; flex-direction:column; gap:20px; }
+  @media (max-width:760px){ .calc-params{ border-right:none; border-bottom:1px solid var(--border); } }
+
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field-label{ font-size:12px; font-weight:700; color:var(--text-muted); display:flex; justify-content:space-between; align-items:baseline; }
+  .field-label .val{ font-size:14px; font-weight:800; color:var(--accent-strong); }
+  .field-help{ font-size:11px; color:var(--text-faint); line-height:1.6; margin-top:-2px; }
+
+  .txt-input{
+    font-family:inherit; font-size:14px; padding:9px 11px; border-radius:8px;
+    border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); width:100%;
+  }
+  .txt-input:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .prefixed{ position:relative; }
+  .prefixed .pfx{ position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-faint); font-size:13px; font-weight:700; pointer-events:none; }
+  .prefixed input{ padding-left:28px; }
+  .prefixed.pfx-wide .pfx{ left:11px; }
+  .prefixed.pfx-wide input{ padding-left:40px; }
+
+  input[type="range"]{
+    -webkit-appearance:none; appearance:none; width:100%; height:5px; border-radius:999px;
+    background:var(--border-strong); outline:none; margin:6px 0 2px;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:17px;height:17px; border-radius:50%; background:var(--accent);
+    border:2.5px solid var(--surface); box-shadow:0 0 0 1px var(--accent); cursor:pointer;
+  }
+  input[type="range"]::-moz-range-thumb{
+    width:17px;height:17px; border-radius:50%; background:var(--accent); border:2.5px solid var(--surface);
+    box-shadow:0 0 0 1px var(--accent); cursor:pointer;
+  }
+  .range-minmax{ display:flex; justify-content:space-between; font-size:10.5px; color:var(--text-faint); }
+
+  .toggle-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .toggle-row .txt{ display:flex; flex-direction:column; gap:2px; }
+  .toggle-row .t-label{ font-size:13px; font-weight:700; color:var(--text); }
+  .toggle-row .t-help{ font-size:11px; color:var(--text-faint); line-height:1.5; }
+  .switch{ position:relative; width:42px; height:24px; flex:none; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .switch .slider{
+    position:absolute; inset:0; background:var(--border-strong); border-radius:999px; cursor:pointer; transition:.15s;
+  }
+  .switch .slider::before{
+    content:""; position:absolute; width:18px;height:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.15s;
+    box-shadow:0 1px 3px rgba(0,0,0,.3);
+  }
+  .switch input:checked + .slider{ background:var(--accent); }
+  .switch input:checked + .slider::before{ transform:translateX(18px); }
+
+  .calc-results{ padding:20px 24px; display:flex; flex-direction:column; gap:18px; }
+  .result-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  @media (max-width:600px){ .result-grid{ grid-template-columns:1fr; } }
+  .result-card{ background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+  .result-card .rlabel{ font-size:11px; color:var(--text-faint); font-weight:700; margin-bottom:6px; }
+  .result-card .rval{ font-size:clamp(16px,2.6vw,21px); font-weight:800; line-height:1.2; word-break:break-word; }
+  .result-card .rsub{ font-size:11px; color:var(--text-faint); margin-top:4px; }
+  .result-card.status .rval{ font-size:16px; display:inline-flex; align-items:center; gap:6px; }
+  .status-pill{ display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-size:13px; font-weight:800; }
+  .status-pill.ok{ background:var(--good-soft); color:var(--good); }
+  .status-pill.over{ background:var(--danger-soft); color:var(--danger); }
+  .status-pill .dot{ width:7px;height:7px;border-radius:50%;background:currentColor; }
+
+  .chart-wrap{ background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:14px 16px 6px; }
+  .chart-wrap-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:6px; }
+  .chart-wrap-head h3{ margin:0; font-size:12.5px; font-weight:800; color:var(--text); }
+  .legend{ display:flex; gap:12px; font-size:10.5px; color:var(--text-faint); }
+  .legend span{ display:inline-flex; align-items:center; gap:5px; }
+  .legend i{ width:10px;height:3px; border-radius:2px; display:inline-block; }
+  .chart-canvas-box{ position:relative; height:230px; }
+
+  .calc-formula{ font-size:10.5px; color:var(--text-faint); line-height:1.7; background:var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; }
+  .calc-formula b{ color:var(--text-muted); }
+
+  /* ---------- stale-data banner ---------- */
+  .stale-banner{
+    display:flex; gap:12px; align-items:flex-start; max-width:1180px; margin:0 auto 18px;
+    background:var(--warn-soft); border:1px solid var(--warn-border); border-left:4px solid var(--warn);
+    border-radius:12px; padding:13px 16px; box-shadow:var(--shadow);
+  }
+  .stale-banner svg{ flex:none; width:20px;height:20px; color:var(--warn); margin-top:2px; }
+  .stale-banner .txt{ flex:1; min-width:0; }
+  .stale-banner p{ margin:0; font-size:13.5px; line-height:1.7; color:var(--text); }
+  .stale-banner b{ font-weight:800; color:var(--warn); }
+  .stale-banner .stale-days{ font-family:"Manrope",sans-serif; font-variant-numeric:tabular-nums; }
+  .stale-dismiss{
+    appearance:none; cursor:pointer; flex:none; border:1px solid var(--warn-border); background:transparent;
+    color:var(--warn); width:26px;height:26px; border-radius:7px; display:flex; align-items:center; justify-content:center;
+  }
+  .stale-dismiss:hover{ background:var(--warn-soft); }
+</style>
+</head>
+<body>
+<div class="stale-banner" id="staleBanner" hidden>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+  <div class="txt">
+    <p><b>此頁面資料可能已過期：</b>上次更新於 <span id="staleUpdatedDate">—</span>，距今已 <span class="stale-days" id="staleDaysCount">—</span> 天（超過 30 天）。請務必向 PM／業務營運確認是否有更新的報價規則，再引用本頁數字對外報價。</p>
+  </div>
+  <button class="stale-dismiss" id="staleDismiss" aria-label="關閉提示" title="關閉提示">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+</div>
+
+<div class="wrap">
+  <header class="page">
+    <span class="eyebrow"><span class="dot"></span>SALES REFERENCE · 2026 · ver. <span id="verStamp">2026-09-20 22:47</span></span>
+    <h1>watsonx Orchestrate 報價說明</h1>
+    <p class="sub">依部署方式與計費模式整理 wxO 各方案定價，每一個價格包都可以直接開啟試算機，套用折扣、YoY 漲幅與美金／台幣匯率，即時確認是否落在客戶預算門檻內。</p>
+
+    <div class="tw-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+      <p><b>台灣定價換算規則：</b>本頁所有「TW List Price」皆為美金報價，等於 <b>美國原始 List Price × 2</b>；台灣的折扣試算慣例是從 <b>50% off 起跳</b>，因此下方每個試算機的折扣滑桿範圍皆為 50%–100%，預設 50%。實際報價仍以財務 / 業務營運公告為準。</p>
+    </div>
+
+    <div class="ru-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 4.9V17L12 22l-9-5.1V6.9L12 2z"/><path d="M12 12l9-5M12 12v10M12 12L3 7"/></svg>
+      <p><b>RU（Resource Unit）換算方式（On-Prem 適用）：</b>100 Documents = 1 RU；10 MAU = 1 RU；500 Control Events = 1 RU（即將推出）。內含 granite-13b-chat-v2（5.2 版起含 llama-3-1-70b-instruct、llama-3-2-90b-vision-instruct）供對話式搜尋免費使用；內含 Prebuilt Domain Agents。Install 料號（base part）本身<b>不含</b> RU，需另購足夠 RU 涵蓋 Document／MAU 用量。</p>
+    </div>
+  </header>
+
+  <!-- top-level tabs -->
+  <div class="tabbar" role="tablist">
+    <button class="tabbtn active" data-toplevel="saas">SaaS</button>
+    <button class="tabbtn" data-toplevel="onprem">On-Prem</button>
+  </div>
+
+  <!-- SaaS panel -->
+  <section class="panel active" data-panel="saas">
+    <div class="subtabbar">
+      <button class="subtabbtn active" data-sub="saas-ibm"><span class="tag">SaaS</span>IBM Cloud 點數方案</button>
+      <button class="subtabbtn" data-sub="saas-aws"><span class="tag">SaaS</span>AWS 方案</button>
+    </div>
+
+    <div class="panel active" data-subpanel="saas-ibm">
+      <div class="grid cols-3" id="grid-saas-ibm"></div>
+    </div>
+    <div class="panel" data-subpanel="saas-aws">
+      <div class="grid cols-3" id="grid-saas-aws"></div>
+    </div>
+  </section>
+
+  <!-- On-Prem panel -->
+  <section class="panel" data-panel="onprem">
+    <div class="subtabbar">
+      <button class="subtabbtn active" data-sub="onprem-sl"><span class="tag">On-Prem</span>訂閱制 SL</button>
+      <button class="subtabbtn" data-sub="onprem-perp"><span class="tag">On-Prem</span>永久授權 Perpetual</button>
+    </div>
+
+    <div class="panel active" data-subpanel="onprem-sl">
+      <div class="grid cols-2" id="grid-onprem-sl"></div>
+    </div>
+    <div class="panel" data-subpanel="onprem-perp">
+      <div class="grid cols-2" id="grid-onprem-perp"></div>
+    </div>
+  </section>
+
+  <footer class="note">
+    資料整理自 IBM watsonx Orchestrate Pricing and Packaging（July 2026 Edition）。TW List Price 為美金報價 × 2 之估算結果，僅供業務內部試算參考，正式報價、匯率與折扣核准請以財務 / S&amp;S 營運公告與簽核流程為準。
+  </footer>
+</div>
+
+<!-- shared calculator modal -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h2 id="calcTitle">方案名稱</h2>
+        <div class="plat" id="calcPlat">平台 · 計價單位</div>
+      </div>
+      <button class="modal-close" id="calcClose" aria-label="關閉">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="calc-params">
+        <div class="field">
+          <label class="field-label" for="inOriginal">原始定價（USD，TW List）</label>
+          <div class="prefixed"><span class="pfx">$</span><input class="txt-input" type="text" id="inOriginal" inputmode="decimal"></div>
+          <div class="field-help">已預填該方案 TW List Price（US × 2），可自行修改。</div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">折扣 % off <span class="val" id="lblDiscount">50%</span></label>
+          <input type="range" id="inDiscount" min="50" max="100" step="1" value="50">
+          <div class="range-minmax"><span>50%</span><span>100%</span></div>
+          <div class="field-help">台灣報價慣例自 50% off 起跳；折扣越高，客戶實付金額越低。</div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="txt">
+            <span class="t-label">套用 YoY 10% 漲幅</span>
+            <span class="t-help">開啟後，價格 × 1.10（與折扣互為乘法，順序不影響結果）。</span>
+          </div>
+          <label class="switch"><input type="checkbox" id="inYoy"><span class="slider"></span></label>
+        </div>
+
+        <div class="field">
+          <label class="field-label">美元 → 台幣匯率 <span class="val" id="lblFx">31.60</span></label>
+          <input type="range" id="inFx" min="20" max="40" step="0.01" value="31.6">
+          <div class="range-minmax"><span>20.00</span><span>40.00</span></div>
+          <div class="field-help">可直接輸入數字或用滑桿調整（近期市場約 31–33 區間，僅供參考）。</div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="inBudget">客戶預算門檻（TWD）</label>
+          <div class="prefixed pfx-wide"><span class="pfx">NT$</span><input class="txt-input" type="text" id="inBudget" inputmode="decimal" value="3,000,000"></div>
+          <div class="field-help">預設 300 萬台幣，可自行修改。圖表中以紅色虛線標示。</div>
+        </div>
+      </div>
+
+      <div class="calc-results">
+        <div class="result-grid">
+          <div class="result-card">
+            <div class="rlabel">最終單價（USD）</div>
+            <div class="rval num" id="outUsd">$0</div>
+            <div class="rsub" id="outUsdSub">—</div>
+          </div>
+          <div class="result-card">
+            <div class="rlabel">最終單價（TWD）</div>
+            <div class="rval num" id="outTwd">NT$0</div>
+            <div class="rsub" id="outTwdSub">—</div>
+          </div>
+          <div class="result-card status">
+            <div class="rlabel">預算狀態</div>
+            <div class="rval"><span class="status-pill ok" id="outStatusPill"><span class="dot"></span><span id="outStatusText">在預算內</span></span></div>
+            <div class="rsub" id="outStatusSub">—</div>
+          </div>
+        </div>
+
+        <div class="chart-wrap">
+          <div class="chart-wrap-head">
+            <h3>折扣 % 對最終價格的影響</h3>
+            <div class="legend">
+              <span><i style="background:#3648c9"></i>台幣（左軸）</span>
+              <span><i style="background:#9a4fd8"></i>美金（右軸）</span>
+              <span><i style="background:#c62828;height:0;border-top:2px dashed #c62828"></i>預算門檻</span>
+            </div>
+          </div>
+          <div class="chart-canvas-box"><canvas id="calcChart"></canvas></div>
+        </div>
+
+        <div class="calc-formula">
+          <b>計算邏輯：</b> 最終價格 = 原始定價 × (1 − 折扣%) × (套用 YoY 時 × 1.10) × 匯率。折扣與 YoY 皆為乘法係數，先乘後乘不影響最終結果。匯率預設值為近期市場區間參考值，非即時報價，正式報價請以財務 / 銀行公告匯率為準。
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- freshness check ---------------- */
+  // single source of truth for "last updated" — keep in sync with the eyebrow ver. stamp above
+  var LAST_UPDATED = "2026-09-20T22:47:00+08:00";
+  var STALE_DAYS_THRESHOLD = 30;
+
+  (function checkFreshness(){
+    try{
+      var updated = new Date(LAST_UPDATED);
+      var now = new Date();
+      var verEl = document.getElementById('verStamp');
+      if(verEl){
+        var y = updated.getFullYear(), m = String(updated.getMonth()+1).padStart(2,'0'), d = String(updated.getDate()).padStart(2,'0');
+        var hh = String(updated.getHours()).padStart(2,'0'), mm = String(updated.getMinutes()).padStart(2,'0');
+        verEl.textContent = y+'-'+m+'-'+d+' '+hh+':'+mm;
+      }
+      var diffDays = Math.floor((now.getTime() - updated.getTime()) / 86400000);
+      if(diffDays <= STALE_DAYS_THRESHOLD) return;
+
+      var dismissedAt = null;
+      try{ dismissedAt = sessionStorage.getItem('wxo-stale-dismissed'); }catch(e){}
+      if(dismissedAt === LAST_UPDATED) return;
+
+      var banner = document.getElementById('staleBanner');
+      var dateEl = document.getElementById('staleUpdatedDate');
+      var daysEl = document.getElementById('staleDaysCount');
+      if(!banner) return;
+      if(dateEl){
+        var y2 = updated.getFullYear(), m2 = String(updated.getMonth()+1).padStart(2,'0'), d2 = String(updated.getDate()).padStart(2,'0');
+        dateEl.textContent = y2+'-'+m2+'-'+d2;
+      }
+      if(daysEl) daysEl.textContent = diffDays;
+      banner.hidden = false;
+
+      var dismissBtn = document.getElementById('staleDismiss');
+      if(dismissBtn){
+        dismissBtn.addEventListener('click', function(){
+          banner.hidden = true;
+          try{ sessionStorage.setItem('wxo-stale-dismissed', LAST_UPDATED); }catch(e){}
+        });
+      }
+    }catch(e){ /* freshness check is best-effort; never block the page */ }
+  })();
+
+  /* ---------------- data ---------------- */
+  var PKGS = {
+    "ibm-ess": {
+      name:"Essentials Agentic", plat:"IBM Cloud SaaS · 月費方案", tier:"essentials",
+      us:530, unit:"/ 月",
+      features:["4,000 MAUs","Agent Builder","Channels（webchat／voice／Slack／Teams）","10GB 文件上傳","IBM 預建 Domain Agents","1 個 Workspace"],
+      pid:"5900BQI", partNote:"訂閱點數制，依幣別選料號（如美金：D11BIZX 每月／D11BJZX Overage／D11BRZX SLA）"
+    },
+    "ibm-std": {
+      name:"Standard Agentic", plat:"IBM Cloud SaaS · 月費方案", tier:"standard",
+      us:6360, unit:"/ 月",
+      features:["<b>含 Essentials 全部內容</b>","40,000 MAUs","100 Workspaces"],
+      pid:"5900BQI", partNote:"訂閱點數制，依幣別選料號（如美金：D11BIZX 每月／D11BJZX Overage／D11BRZX SLA）"
+    },
+    "ibm-prem": {
+      name:"Premium Agentic", plat:"IBM Cloud SaaS · 月費方案", tier:"premium",
+      us:18000, unit:"/ 月",
+      features:["<b>含 Standard 全部內容</b>","50,000 MAUs","Data Isolation","HIPAA Ready"],
+      pid:"5900BQI", partNote:"訂閱點數制，依幣別選料號（如美金：D11BIZX 每月／D11BJZX Overage／D11BRZX SLA）"
+    },
+    "aws-ess": {
+      name:"Essentials Agentic", plat:"AWS SaaS · 月費方案", tier:"essentials",
+      us:530, unit:"/ 月",
+      features:["600 RU／月","Agent Builder Access","Channels（webchat／voice／Slack／Teams）","10GB 文件","IBM 預建 Domain Agents"],
+      note:"最低合約 12 個月",
+      pid:"5900AN0", part:"D11HUZX", partNote:"Advanced Support：E11HVZX（$80/月）"
+    },
+    "aws-std": {
+      name:"Standard Agentic", plat:"AWS SaaS · 月費方案", tier:"standard",
+      us:6360, unit:"/ 月",
+      features:["<b>含 Essentials 全部內容</b>","6,000 RU／月"],
+      note:"最低合約 12 個月",
+      pid:"5900AN0", part:"D11HXZX", partNote:"Advanced Support：E11HYZX（$954/月）"
+    },
+    "aws-prem": {
+      name:"Premium Agentic *", plat:"AWS SaaS · 月費方案", tier:"premium",
+      us:18000, unit:"/ 月",
+      features:["<b>含 Standard 全部內容</b>","7,500 RU／月","Data Isolation（HIPAA ready）"],
+      note:"僅限 us-east DC，僅透過 AWS Marketplace private offer 提供 · 最低合約 12 個月",
+      pid:"5900AN0", part:"D11EQZX", partNote:"Advanced Support：E11HWZX（$2,700/月）"
+    },
+    "onprem-sl": {
+      name:"訂閱制 SL（Install + RU）", plat:"On-Prem · Agentic Install · 月費方案", tier:"bundle",
+      unit:"/ 月", isBundle:true, pid:"—",
+      items:[
+        {label:"Install", us:32000, note:"限 171 VPC", part:"D0QL7ZX"},
+        {label:"Resource Units（1000 RU）", us:4410, note:"1K RU／月", part:"D0QLHZX"}
+      ],
+      upgrades:"升級料號：Install Upgrade D0REMZX（$24,000/US）、RU 1000 Upgrade D0RGLZX（$2,300/US）"
+    },
+    "onprem-perp": {
+      name:"永久授權 Perpetual（Install + RU）", plat:"On-Prem · Agentic Install · License + 12個月 S&S", tier:"bundle",
+      unit:"/ 年（首年 License+S&S）", isBundle:true, pid:"—",
+      items:[
+        {label:"Install（Prod）", us:865000, note:"License + 12個月 S&S，限 171 VPC", part:"D0QL8ZX"},
+        {label:"Resource Units（1000 RU）", us:133000, note:"License + 12個月 S&S，1K RU／月", part:"D0QLIZX"}
+      ],
+      upgrades:"續約／重啟料號：Install 年度續約 E0QL6ZX（$225,000/US）、RU 年度續約 E0QLGZX（$26,400/US）；Trade-up：Install D0RELZX（$416,000/US）、RU D0RGKZX（$40,000/US）"
+    }
+  };
+
+  function twOf(us){ return us*2; }
+  function fmtUSD(n){ return "$" + Math.round(n).toLocaleString("en-US"); }
+  function fmtTWD(n){ return "NT$" + Math.round(n).toLocaleString("en-US"); }
+
+  /* ---------------- render cards ---------------- */
+  function tierBadge(tier){
+    if(tier==="standard") return '<span class="tier-badge b-standard">STANDARD</span>';
+    if(tier==="premium") return '<span class="tier-badge b-premium">PREMIUM</span>';
+    if(tier==="essentials") return '<span class="tier-badge">ESSENTIALS</span>';
+    return '';
+  }
+
+  function renderSaasCard(id, p){
+    var tw = twOf(p.us);
+    var cardCls = "card" + (p.tier==="standard" ? " tier-standard" : p.tier==="premium" ? " tier-premium" : "");
+    var html = '';
+    html += '<div class="'+cardCls+'">';
+    html += '  <div class="card-top">';
+    html += '    <div><div class="tier-name">'+p.name+'</div><div class="tier-plat">'+p.plat+'</div></div>';
+    html += '    '+tierBadge(p.tier);
+    html += '  </div>';
+    html += '  <div class="price-block">';
+    html += '    <div class="price-usflag">TW LIST PRICE (USD)</div>';
+    html += '    <div class="price-tw"><span class="amt num">'+fmtUSD(tw)+'</span><span class="unit">'+p.unit+'</span></div>';
+    html += '    <div class="price-us num">US List Price： '+fmtUSD(p.us)+p.unit+'</div>';
+    if(p.part){
+      html += '    <div class="part-tag"><span class="pn-lbl">PID '+p.pid+' ·</span><span class="pn">'+p.part+'</span></div>';
+    } else if(p.pid){
+      html += '    <div class="part-tag"><span class="pn-lbl">PID</span><span class="pn">'+p.pid+'</span></div>';
+    }
+    html += '  </div>';
+    html += '  <ul class="feat-list">';
+    p.features.forEach(function(f){ html += '<li>'+f+'</li>'; });
+    html += '  </ul>';
+    if(p.partNote) html += '<div class="card-note">'+p.partNote+'</div>';
+    if(p.note) html += '<div class="card-note">'+p.note+'</div>';
+    html += '  <button class="calc-btn" data-open-calc="'+id+'">';
+    html += '    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>';
+    html += '    開啟報價計算機';
+    html += '  </button>';
+    html += '</div>';
+    return html;
+  }
+
+  function renderBundleCard(id, p){
+    var totalUs = p.items.reduce(function(s,it){return s+it.us;},0);
+    var totalTw = twOf(totalUs);
+    var html = '';
+    html += '<div class="card">';
+    html += '  <div class="card-top">';
+    html += '    <div><div class="tier-name">'+p.name+'</div><div class="tier-plat">'+p.plat+'</div></div>';
+    html += '  </div>';
+    html += '  <table class="items-table"><thead><tr><th>項目 ／ 料號</th><th style="text-align:right">TW List (USD)</th></tr></thead><tbody>';
+    p.items.forEach(function(it){
+      html += '<tr><td class="item-label">'+it.label+'<div class="item-note">'+it.note+'　<span class="mono">'+it.part+'</span></div></td><td class="item-price num">'+fmtUSD(twOf(it.us))+'</td></tr>';
+    });
+    html += '  </tbody></table>';
+    html += '  <div class="items-total"><span class="lbl">合計 TW List Price'+p.unit+'</span><span class="val num">'+fmtUSD(totalTw)+'</span></div>';
+    html += '  <div class="card-note">US List 合計：'+fmtUSD(totalUs)+p.unit+'　·　US 個別項目：'+p.items.map(function(it){return it.label+' '+fmtUSD(it.us);}).join('／')+'</div>';
+    if(p.upgrades) html += '  <div class="card-note">'+p.upgrades+'</div>';
+    html += '  <button class="calc-btn" data-open-calc="'+id+'">';
+    html += '    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>';
+    html += '    開啟報價計算機（合計 '+p.unit+'）';
+    html += '  </button>';
+    html += '</div>';
+    return html;
+  }
+
+  document.getElementById('grid-saas-ibm').innerHTML = ['ibm-ess','ibm-std','ibm-prem'].map(function(id){return renderSaasCard(id, PKGS[id]);}).join('');
+  document.getElementById('grid-saas-aws').innerHTML = ['aws-ess','aws-std','aws-prem'].map(function(id){return renderSaasCard(id, PKGS[id]);}).join('');
+  document.getElementById('grid-onprem-sl').innerHTML = renderBundleCard('onprem-sl', PKGS['onprem-sl']);
+  document.getElementById('grid-onprem-perp').innerHTML = renderBundleCard('onprem-perp', PKGS['onprem-perp']);
+
+  /* ---------------- tabs ---------------- */
+  document.querySelectorAll('.tabbtn[data-toplevel]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.tabbtn[data-toplevel]').forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      var target = btn.getAttribute('data-toplevel');
+      document.querySelectorAll('.panel[data-panel]').forEach(function(p){
+        p.classList.toggle('active', p.getAttribute('data-panel')===target);
+      });
+    });
+  });
+  document.querySelectorAll('.subtabbtn[data-sub]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var group = btn.closest('.panel');
+      group.querySelectorAll('.subtabbtn').forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      var target = btn.getAttribute('data-sub');
+      group.querySelectorAll('.panel[data-subpanel]').forEach(function(p){
+        p.classList.toggle('active', p.getAttribute('data-subpanel')===target);
+      });
+    });
+  });
+
+  /* ---------------- calculator modal ---------------- */
+  var backdrop = document.getElementById('modalBackdrop');
+  var elTitle = document.getElementById('calcTitle');
+  var elPlat = document.getElementById('calcPlat');
+  var inOriginal = document.getElementById('inOriginal');
+  var inDiscount = document.getElementById('inDiscount');
+  var lblDiscount = document.getElementById('lblDiscount');
+  var inYoy = document.getElementById('inYoy');
+  var inFx = document.getElementById('inFx');
+  var lblFx = document.getElementById('lblFx');
+  var inBudget = document.getElementById('inBudget');
+  var outUsd = document.getElementById('outUsd');
+  var outUsdSub = document.getElementById('outUsdSub');
+  var outTwd = document.getElementById('outTwd');
+  var outTwdSub = document.getElementById('outTwdSub');
+  var outStatusPill = document.getElementById('outStatusPill');
+  var outStatusText = document.getElementById('outStatusText');
+  var outStatusSub = document.getElementById('outStatusSub');
+
+  var chart = null;
+  function getCssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+  function parseNum(v){
+    var n = parseFloat(String(v).replace(/[^0-9.\-]/g,''));
+    return isNaN(n) ? 0 : n;
+  }
+
+  function formatWithCommas(raw){
+    raw = String(raw).replace(/[^\d.]/g,'');
+    if(raw==='') return '';
+    var parts = raw.split('.');
+    parts[0] = parts[0].replace(/^0+(?=\d)/,'');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return parts.length>1 ? parts[0]+'.'+parts[1].slice(0,2) : parts[0];
+  }
+
+  function attachThousands(el){
+    el.addEventListener('input', function(){
+      var cursorPos = el.selectionStart;
+      var beforeLen = el.value.length;
+      var formatted = formatWithCommas(el.value);
+      if(formatted === el.value) return;
+      el.value = formatted;
+      var afterLen = el.value.length;
+      var newPos = Math.max(0, cursorPos + (afterLen - beforeLen));
+      el.setSelectionRange(newPos, newPos);
+    });
+  }
+
+  function currentBase(){
+    return parseNum(inOriginal.value);
+  }
+
+  function computeFinal(base, discountPct, yoy, fx){
+    var afterDiscount = base * (1 - discountPct/100);
+    var afterYoy = afterDiscount * (yoy ? 1.10 : 1);
+    var usd = afterYoy;
+    var twd = usd * fx;
+    return {usd:usd, twd:twd};
+  }
+
+  var chartLabels = [];
+  for(var _d=50; _d<=100; _d+=2){ chartLabels.push(_d+"%"); }
+
+  function niceBounds(minVal, maxVal, topPadFrac, botPadFrac){
+    if(topPadFrac === undefined) topPadFrac = 0.18;
+    if(botPadFrac === undefined) botPadFrac = 0.18;
+    if(maxVal <= minVal){ maxVal = minVal + 1; }
+    var range = maxVal - minVal;
+    var topPad = range * topPadFrac || Math.max(1, Math.abs(maxVal) * topPadFrac);
+    var botPad = range * botPadFrac || Math.max(1, Math.abs(maxVal) * botPadFrac);
+    return { min: Math.max(0, minVal - botPad), max: maxVal + topPad };
+  }
+
+  function buildChart(base, yoy, fx, budget, currentDiscount){
+    var box = document.querySelector('.chart-canvas-box');
+    if(typeof Chart === 'undefined'){
+      box.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:12px;color:var(--text-faint);">圖表元件載入失敗，請重新整理頁面</div>';
+      return;
+    }
+    if(!document.getElementById('calcChart')){
+      box.innerHTML = '<canvas id="calcChart"></canvas>';
+    }
+
+    var twdData = [];
+    var usdData = [];
+    for(var i=0;i<chartLabels.length;i++){
+      var d = 50 + i*2;
+      var r = computeFinal(base, d, yoy, fx);
+      twdData.push(Math.round(r.twd));
+      usdData.push(Math.round(r.usd));
+    }
+    var budgetLine = chartLabels.map(function(){ return Math.round(budget); });
+
+    // fixed axis bounds: computed from the full 50–100% range so only the marker moves while dragging.
+    // TWD and USD are exactly proportional (TWD = USD × fx), so if both axes used the same padding
+    // ratio the two lines would sit on identical normalized positions and visually overlap. Give the
+    // USD (right) axis extra top headroom so its line renders visibly lower/compressed from the TWD line.
+    var twdBounds = niceBounds(Math.min(twdData[twdData.length-1], budget), Math.max(twdData[0], budget), 0.18, 0.18);
+    var usdBounds = niceBounds(usdData[usdData.length-1], usdData[0], 0.85, 0.08);
+
+    var accent = "#3648c9", accent2 = "#9a4fd8", danger = "#c62828";
+    var textFaint = getCssVar('--text-faint') || '#8b8fa3';
+    var gridColor = getCssVar('--border') || '#e0e2ea';
+
+    var markerIdx = Math.round((Math.max(50,Math.min(100,currentDiscount)) - 50) / 2);
+    var pointRadii = chartLabels.map(function(_,idx){ return idx===markerIdx ? 6 : 0; });
+
+    if(!chart){
+      var ctx = document.getElementById('calcChart').getContext('2d');
+      chart = new Chart(ctx, {
+        type:'line',
+        data:{
+          labels: chartLabels,
+          datasets:[
+            {
+              label:'台幣', data: twdData, yAxisID:'y', borderColor: accent, backgroundColor: accent,
+              borderWidth:2.5, pointRadius: pointRadii,
+              pointBackgroundColor: accent, pointBorderColor:"#fff", pointBorderWidth:2,
+              tension:.25, fill:false
+            },
+            {
+              label:'美金', data: usdData, yAxisID:'y1', borderColor: accent2, backgroundColor: accent2,
+              borderWidth:2, borderDash:[5,3], pointRadius:0, tension:.25, fill:false
+            },
+            {
+              label:'預算門檻', data: budgetLine, yAxisID:'y', borderColor: danger, borderWidth:1.5,
+              borderDash:[6,4], pointRadius:0, fill:false
+            }
+          ]
+        },
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          animation:false,
+          interaction:{ mode:'index', intersect:false },
+          plugins:{
+            legend:{ display:false },
+            tooltip:{
+              callbacks:{
+                label:function(c){
+                  if(c.dataset.label==='台幣') return '台幣：NT$'+c.parsed.y.toLocaleString('en-US');
+                  if(c.dataset.label==='美金') return '美金：$'+c.parsed.y.toLocaleString('en-US');
+                  return '預算門檻：NT$'+c.parsed.y.toLocaleString('en-US');
+                }
+              }
+            }
+          },
+          layout:{ padding:{ top:6, right:4, bottom:0, left:0 } },
+          scales:{
+            x:{ ticks:{ color:textFaint, font:{size:10}, maxRotation:0, autoSkip:true, maxTicksLimit:8 }, grid:{ color:gridColor } },
+            y:{ position:'left', min:twdBounds.min, max:twdBounds.max, ticks:{ color:textFaint, font:{size:10}, maxTicksLimit:6, callback:function(v){ return (v/1000).toLocaleString('en-US')+'K'; } }, grid:{ color:gridColor } },
+            y1:{ position:'right', min:usdBounds.min, max:usdBounds.max, ticks:{ color:textFaint, font:{size:10}, maxTicksLimit:6, callback:function(v){ return (v/1000).toLocaleString('en-US')+'K'; } }, grid:{ display:false } }
+          }
+        }
+      });
+      return;
+    }
+
+    // update in place: only data + marker + axis bounds change, no re-animation, no axis "jump"
+    chart.data.datasets[0].data = twdData;
+    chart.data.datasets[0].pointRadius = pointRadii;
+    chart.data.datasets[1].data = usdData;
+    chart.data.datasets[2].data = budgetLine;
+    chart.options.scales.y.min = twdBounds.min;
+    chart.options.scales.y.max = twdBounds.max;
+    chart.options.scales.y1.min = usdBounds.min;
+    chart.options.scales.y1.max = usdBounds.max;
+    chart.update('none');
+  }
+
+  function recalc(){
+    var base = currentBase();
+    var discount = parseFloat(inDiscount.value);
+    var yoy = inYoy.checked;
+    var fx = parseFloat(inFx.value);
+    var budget = parseNum(inBudget.value);
+
+    lblDiscount.textContent = discount + '%';
+    lblFx.textContent = fx.toFixed(2);
+
+    var r = computeFinal(base, discount, yoy, fx);
+    outUsd.textContent = fmtUSD(r.usd);
+    outUsdSub.textContent = yoy ? '未套用 YoY： '+fmtUSD(base*(1-discount/100)) : '未套用 YoY';
+    outTwd.textContent = fmtTWD(r.twd);
+    outTwdSub.textContent = '@ 1 USD = '+fx.toFixed(2)+' TWD';
+
+    var over = r.twd > budget;
+    outStatusPill.className = 'status-pill ' + (over ? 'over' : 'ok');
+    outStatusText.textContent = over ? '超出預算' : '在預算內';
+    var diff = Math.abs(r.twd - budget);
+    outStatusSub.textContent = (over ? '超出 ' : '低於門檻 ') + fmtTWD(diff);
+
+    buildChart(base, yoy, fx, budget, discount);
+  }
+
+  function openCalc(id){
+    var p = PKGS[id];
+    var base;
+    if(p.isBundle){
+      var totalUs = p.items.reduce(function(s,it){return s+it.us;},0);
+      base = twOf(totalUs);
+    } else {
+      base = twOf(p.us);
+    }
+    elTitle.textContent = p.name;
+    elPlat.textContent = p.plat + ' · 單位 ' + p.unit;
+    inOriginal.value = formatWithCommas(String(Math.round(base)));
+    inDiscount.value = 50;
+    inYoy.checked = false;
+    inFx.value = 31.6;
+    inBudget.value = formatWithCommas('3000000');
+
+    backdrop.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    recalc();
+  }
+
+  function closeCalc(){
+    backdrop.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest('[data-open-calc]');
+    if(btn){ openCalc(btn.getAttribute('data-open-calc')); }
+  });
+  document.getElementById('calcClose').addEventListener('click', closeCalc);
+  backdrop.addEventListener('click', function(e){ if(e.target===backdrop) closeCalc(); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape' && backdrop.classList.contains('open')) closeCalc(); });
+
+  attachThousands(inOriginal);
+  attachThousands(inBudget);
+
+  [inOriginal, inDiscount, inYoy, inFx, inBudget].forEach(function(el){
+    el.addEventListener('input', recalc);
+    el.addEventListener('change', recalc);
+  });
+
+})();
+</script>
+</body>
+</html>
