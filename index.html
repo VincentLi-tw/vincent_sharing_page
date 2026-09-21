@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>產品報價入口</title>
+<meta name="description" content="Bob、watsonx Orchestrate、watsonx.data、Confluent 報價試算入口頁">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&family=Manrope:wght@500;700;800&display=swap">
+<style>
+  :root{
+    --bg:#f5f6fa;
+    --bg-2:#eef0f8;
+    --surface:#ffffff;
+    --surface-2:#f0f1f6;
+    --border:#e0e2ea;
+    --border-strong:#c9cbd8;
+    --text:#1b1e2b;
+    --text-muted:#5b5f72;
+    --text-faint:#8b8fa3;
+    --accent:#3648c9;
+    --accent-strong:#26359e;
+    --accent-soft:#eaecfb;
+    --accent-soft-border:#c6cbf3;
+    --shadow: 0 1px 2px rgba(20,22,40,.04), 0 8px 24px -12px rgba(20,22,40,.18);
+    --shadow-lg: 0 24px 60px -20px rgba(20,22,40,.45);
+    --tile-bg:#ffffff;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0a0c14;
+      --bg-2:#0e1120;
+      --surface:#171a27;
+      --surface-2:#1e2233;
+      --border:#2b2f42;
+      --border-strong:#3a3f57;
+      --text:#eef0f8;
+      --text-muted:#a7abc2;
+      --text-faint:#767a92;
+      --accent:#8b96ff;
+      --accent-strong:#a5affc;
+      --accent-soft:#232a52;
+      --accent-soft-border:#3a4390;
+      --shadow: 0 1px 2px rgba(0,0,0,.35), 0 8px 24px -12px rgba(0,0,0,.55);
+      --shadow-lg: 0 24px 60px -20px rgba(0,0,0,.75);
+      --tile-bg:#ffffff;
+      color-scheme: dark;
+    }
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Noto Sans TC","Manrope",-apple-system,BlinkMacSystemFont,sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+    position:relative;
+    overflow-x:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* ---------- animated background ---------- */
+  .aurora{
+    position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none;
+  }
+  .aurora span{
+    position:absolute; border-radius:50%;
+    filter:blur(70px);
+    opacity:.55;
+    animation:float 22s ease-in-out infinite;
+  }
+  .aurora span:nth-child(1){
+    width:520px; height:520px; top:-180px; left:-140px;
+    background:radial-gradient(circle at 30% 30%, #6f7bff, transparent 70%);
+    animation-duration:26s;
+  }
+  .aurora span:nth-child(2){
+    width:460px; height:460px; top:20%; right:-160px;
+    background:radial-gradient(circle at 60% 40%, #34d1c4, transparent 70%);
+    animation-duration:30s; animation-delay:-6s;
+  }
+  .aurora span:nth-child(3){
+    width:420px; height:420px; bottom:-160px; left:18%;
+    background:radial-gradient(circle at 50% 50%, #c86dff, transparent 70%);
+    animation-duration:24s; animation-delay:-12s;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]) .aurora span{ opacity:.35; }
+  }
+  :root[data-theme="dark"] .aurora span{ opacity:.35; }
+  @keyframes float{
+    0%,100%{ transform:translate(0,0) scale(1); }
+    33%{ transform:translate(30px,-20px) scale(1.08); }
+    66%{ transform:translate(-20px,25px) scale(0.95); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .aurora span{ animation:none; }
+  }
+
+  .wrap{
+    position:relative; z-index:1;
+    max-width:1080px; margin:0 auto;
+    padding:64px 24px 40px;
+    flex:1 0 auto;
+    width:100%;
+  }
+
+  .page-bottom-joke{
+    position:relative; z-index:1;
+    text-align:center; margin:0;
+    padding:0 24px 20px;
+    font-style:italic; opacity:.6; font-size:11.5px;
+    color:var(--text-faint);
+  }
+
+  /* ---------- header ---------- */
+  header.page{
+    text-align:center;
+    margin-bottom:52px;
+    opacity:0; transform:translateY(14px);
+    animation:riseIn .7s cubic-bezier(.2,.7,.2,1) forwards;
+  }
+  /* theme-flip: asset ships light-on-transparent, needs to flip to dark in light mode */
+  .theme-flip{ filter:invert(1); }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]) .theme-flip{ filter:none; }
+  }
+  :root[data-theme="dark"] .theme-flip{ filter:none; }
+  h1{
+    font-size:clamp(30px,5vw,44px); font-weight:900; margin:0 0 12px;
+    letter-spacing:-0.02em; text-wrap:balance;
+    background:linear-gradient(120deg, var(--text) 30%, var(--accent-strong) 70%);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .sub{
+    color:var(--text-muted); font-size:16px; max-width:520px;
+    margin:0 auto; line-height:1.7;
+  }
+  .sub-accent{
+    color:var(--accent-strong); font-weight:700;
+  }
+
+  /* ---------- grid ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0,1fr));
+    gap:22px;
+  }
+  @media (max-width:720px){
+    .grid{ grid-template-columns:1fr; }
+  }
+
+  .card{
+    position:relative;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:28px;
+    box-shadow:var(--shadow);
+    text-decoration:none;
+    color:inherit;
+    display:flex; flex-direction:column; gap:16px;
+    overflow:hidden;
+    opacity:0; transform:translateY(18px);
+    animation:riseIn .7s cubic-bezier(.2,.7,.2,1) forwards;
+    transition:transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease, border-color .35s ease;
+  }
+  .card:nth-child(1){ animation-delay:.08s; }
+  .card:nth-child(2){ animation-delay:.16s; }
+  .card:nth-child(3){ animation-delay:.24s; }
+  .card:nth-child(4){ animation-delay:.32s; }
+  header.page{ animation-delay:0s; }
+
+  .card::before{
+    content:"";
+    position:absolute; inset:0;
+    background:radial-gradient(560px circle at var(--mx,50%) var(--my,0%), var(--accent-soft), transparent 60%);
+    opacity:0;
+    transition:opacity .4s ease;
+    pointer-events:none;
+    z-index:0;
+  }
+  .card:hover::before{ opacity:1; }
+  .card:hover{
+    transform:translateY(-6px);
+    box-shadow:var(--shadow-lg);
+    border-color:var(--accent-soft-border);
+  }
+  .card:active{ transform:translateY(-2px); }
+  .card.disabled{ cursor:default; }
+
+  /* oversized corner-bleed logo watermark */
+  .card-watermark{
+    position:absolute; right:-30px; bottom:-30px;
+    width:190px; height:190px;
+    display:flex; align-items:center; justify-content:center;
+    padding:22px;
+    transform:rotate(0deg);
+    -webkit-mask-image: radial-gradient(circle at 78% 78%, #000 0%, #000 32%, transparent 72%);
+            mask-image: radial-gradient(circle at 78% 78%, #000 0%, #000 32%, transparent 72%);
+    transition:transform .45s cubic-bezier(.2,.7,.2,1);
+    pointer-events:none;
+    z-index:0;
+  }
+  .card-watermark img{ width:100%; height:100%; object-fit:contain; }
+  .card:hover .card-watermark{ transform:rotate(-6deg) scale(1.06); }
+
+  .card-body{ position:relative; z-index:1; display:flex; flex-direction:column; gap:12px; }
+  .card-title{ display:flex; flex-direction:column; gap:8px; min-width:0; padding-right:64px; }
+  .card-title h2{ font-size:19px; font-weight:800; margin:0; letter-spacing:-0.01em; }
+  .dep-tags{ display:flex; flex-wrap:wrap; gap:6px; }
+  .dep-tag{
+    font-size:11px; font-weight:700; letter-spacing:.03em;
+    padding:3px 9px; border-radius:999px;
+    background:var(--accent-soft); color:var(--accent-strong);
+    border:1px solid var(--accent-soft-border);
+  }
+
+  .soon-badge{
+    position:absolute; top:16px; right:16px; z-index:2;
+    font-size:11px; font-weight:700; letter-spacing:.04em;
+    padding:4px 10px; border-radius:999px;
+    background:var(--surface-2); color:var(--text-faint);
+    border:1px solid var(--border);
+  }
+  .version-badge{
+    position:absolute; top:16px; right:16px; z-index:2;
+    font-size:11px; font-weight:700; letter-spacing:.03em;
+    padding:4px 10px; border-radius:999px;
+    background:var(--accent-soft); color:var(--accent-strong);
+    border:1px solid var(--accent-soft-border);
+    font-family:"Manrope","Noto Sans TC",sans-serif;
+  }
+
+  .card-desc{
+    font-size:14px; line-height:1.7; color:var(--text-muted);
+    margin:0;
+  }
+
+  .card-cta{
+    margin-top:4px; display:flex; align-items:center; gap:6px;
+    font-size:13.5px; font-weight:700; color:var(--accent-strong);
+  }
+  .card.disabled .card-cta{ color:var(--text-faint); }
+  .card-cta .arrow{ transition:transform .3s cubic-bezier(.2,.7,.2,1); }
+  .card:hover .card-cta .arrow{ transform:translateX(4px); }
+
+  @keyframes riseIn{
+    to{ opacity:1; transform:translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    header.page, .card{ animation:none; opacity:1; transform:none; }
+  }
+
+  footer.page{
+    text-align:center; margin-top:56px;
+    color:var(--text-faint); font-size:12.5px; line-height:1.8;
+    position:relative; z-index:1;
+  }
+  footer.page p{ margin:0 0 6px; }
+  footer.page p:last-child{ margin-bottom:0; }
+  footer.page .credit a{
+    color:var(--accent-strong); font-weight:600;
+    text-decoration:none; border-bottom:1px dashed var(--accent-soft-border);
+  }
+  footer.page .credit a:hover{ border-bottom-style:solid; }
+</style>
+</head>
+<body>
+
+<div class="aurora"><span></span><span></span><span></span></div>
+
+<div class="wrap">
+
+  <header class="page">
+    <h1>IBM Data &amp; AI 主打產品試算入口</h1>
+    <p class="sub">產品價格計算，從未如此<span class="sub-accent">一目了然</span>。</p>
+  </header>
+
+  <div class="grid">
+
+    <div class="card disabled" aria-disabled="true">
+      <span class="soon-badge">即將推出</span>
+      <div class="card-watermark"><img src="pricing_calculator_home_assets/bob-standing.webp" alt="Bob logo"></div>
+      <div class="card-body">
+        <div class="card-title">
+          <h2>IBM Bob</h2>
+          <div class="dep-tags"><span class="dep-tag">SaaS</span><span class="dep-tag">On-Prem</span></div>
+        </div>
+        <p class="card-desc">IBM 內部 AI 助理，報價試算機準備中。</p>
+        <div class="card-cta">敬請期待 <span class="arrow">→</span></div>
+      </div>
+    </div>
+
+    <a class="card active" href="wxo-pricing_v2026-09-20_2247_standalone.html">
+      <span class="version-badge">v2026-09-20</span>
+      <div class="card-watermark"><img src="pricing_calculator_home_assets/Orchestrate_logo.png" alt="watsonx Orchestrate logo"></div>
+      <div class="card-body">
+        <div class="card-title">
+          <h2>watsonx Orchestrate</h2>
+          <div class="dep-tags"><span class="dep-tag">SaaS</span><span class="dep-tag">On-Prem</span></div>
+        </div>
+        <p class="card-desc">AI Agent 自動化平台，含台灣報價折扣試算機。</p>
+        <div class="card-cta">開始試算 <span class="arrow">→</span></div>
+      </div>
+    </a>
+
+    <div class="card disabled" aria-disabled="true">
+      <span class="soon-badge">即將推出</span>
+      <div class="card-watermark"><img src="pricing_calculator_home_assets/watsonx_data.png" alt="watsonx.data logo"></div>
+      <div class="card-body">
+        <div class="card-title">
+          <h2>watsonx.data</h2>
+          <div class="dep-tags"><span class="dep-tag">SaaS</span><span class="dep-tag">On-Prem</span></div>
+        </div>
+        <p class="card-desc">開放式資料湖倉平台，報價試算機準備中。</p>
+        <div class="card-cta">敬請期待 <span class="arrow">→</span></div>
+      </div>
+    </div>
+
+    <div class="card disabled" aria-disabled="true">
+      <span class="soon-badge">即將推出</span>
+      <div class="card-watermark"><img class="theme-flip" src="pricing_calculator_home_assets/confluent_white.png" alt="Confluent logo"></div>
+      <div class="card-body">
+        <div class="card-title">
+          <h2>Confluent</h2>
+          <div class="dep-tags"><span class="dep-tag">SaaS</span><span class="dep-tag">Self-Managed</span></div>
+        </div>
+        <p class="card-desc">即時資料串流平台，報價試算機準備中。</p>
+        <div class="card-cta">敬請期待 <span class="arrow">→</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="page">
+    <p>IBM 內部分享頁面 · 僅供業務參考使用</p>
+    <p class="credit">Made with 🤍 by <a href="https://ibm.enterprise.slack.com/team/U077T4SME5R" target="_blank" rel="noopener">Vincent Li</a> and his Friend <a href="https://bob.ibm.com/zh-tw" target="_blank" rel="noopener">Bob</a> · Bugs are Bob's fault.</p>
+  </footer>
+
+</div>
+
+<p class="page-bottom-joke">Copyright © 2026 IBM Corp. All rights reserved.</p>
+
+<script>
+  document.querySelectorAll('.card').forEach(function(card){
+    card.addEventListener('mousemove', function(e){
+      var r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+      card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+    });
+  });
+</script>
+
+</body>
+</html>
